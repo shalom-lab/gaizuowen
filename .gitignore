@@ -1,0 +1,19 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.npm-cache/
+
+# Secrets — .env holds a real API key; never commit it.
+# Local dev injects this key only in dev mode; production builds are BYOK.
+.env*
+!.env.example
+
+# Student material, deliberately kept out of the repository:
+#   test/                      photos of pupils' handwritten essays
+#   scripts/fixture-result.json  transcript + grading derived from them
+# Put your own photos in test/ to run `npm run test:api` locally.
+test/
+scripts/fixture-result.json

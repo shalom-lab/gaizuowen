@@ -1,0 +1,122 @@
+# 作文批改助手
+
+拍照上传小学生手写作文 → 自动识别文字 → 输出**可直接照抄到作文本上的批注** + 一段 80–100 字总评。
+
+移动端优先的**纯静态页面**，没有后端。识别与批改全部由 DeepSeek 完成。
+
+## 输出长什么样
+
+原文一字不改，错误处后面用 `〔→ 改正〕` 紧跟着标出来，老师照着往下抄即可：
+
+> 比赛在操场举行。一条又粗又粗`〔→ 又粗又长〕`的麻绳安静地躺在地上，
+> 脚底如同有胶水一样黏在地面上`〔生动比喻〕`……
+
+- **错别字 / 病句 / 标点**：给出正确写法，红色系高亮
+- **优美句子 / 好词**：金色波浪线，标出好在哪里
+- 每处批注都有一句 10–30 字的短批语，点一下即可展开
+- 最后是**唯一的长文本**：80–100 字总评
+
+## 本地运行
+
+```bash
+npm install
+cp .env.example .env      # 填入 DEEPSEEK_API_KEY（可选，见下）
+npm run dev
+```
+
+打开 http://localhost:5173 。`npm run dev` 已开启局域网监听，同一 Wi-Fi 下手机可直接访问：
+
+```
+http://<你电脑的局域网IP>:5173
+```
+
+### 本地测试用 .env（可选）
+
+`.env` 里的 `DEEPSEEK_API_KEY` **只在 `npm run dev` 时**被内联进开发版页面，
+省去每次手填密钥。`npm run build` 的产物里该值为空，
+**密钥永远不会进入公开发布的静态文件**（有测试守着这条红线）。
+
+## 部署到 GitHub Pages（BYOK）
+
+没有后端，密钥由使用者在页面里自己填。已实测 DeepSeek 接口会回显
+`Access-Control-Allow-Origin`，因此浏览器可以直连，静态站点完全可行。
+
+1. 推到 GitHub 仓库
+2. Settings → Pages → Source 选 **GitHub Actions**
+3. push 到 `main` 即自动构建发布（见 `.github/workflows/pages.yml`）
+
+`vite.config.ts` 用 `base: './'`，因此**任何仓库名**都能直接用，
+无需按仓库名改配置。构建还会自动生成 `dist/404.html` 以支持刷新和深链接。
+
+预期地址：`https://<owner>.github.io/<repo>/`
+
+## BYOK：密钥键名
+
+密钥只存在**本机浏览器 localStorage**，扁平键名，启动时自动读取：
+
+| 键名 | 说明 |
+| --- | --- |
+| `deepseek-zuowen-key` | DeepSeek API Key（必填） |
+| `deepseek-zuowen-base` | 自定义 API 地址（选填，用于代理/兼容网关） |
+| `gh-zuowen-repo` | `owner/repo`（选填，用于发布） |
+| `gh-zuowen-token` | GitHub PAT（选填） |
+
+可在页面「设置」里填写，也可事先注入后在控制台执行：
+
+```js
+localStorage.setItem('deepseek-zuowen-key', 'sk-...');
+```
+
+申请密钥：https://platform.deepseek.com/api_keys
+
+> 密钥不会上传到任何服务器，只随请求发往 `api.deepseek.com`。
+> 但请注意：GitHub Pages 是公开站点，请勿在公用电脑上保存密钥。
+
+## 模型与成本
+
+`deepseek-flash` 同时支持图片输入与 JSON 输出，1M 上下文。
+
+- 图片按尺寸折算 token，每张上限 **1024**，所以多页上传很便宜
+- 思考模式会产生较多 reasoning token（4 页实测约 1.1 万–2 万），
+  已按输出计费，因此代码里 `max_tokens` 留了充足余量
+- 空闲时段（含周末与工作日 18:00 之后）价格为高峰时段的一半
+
+## 项目结构
+
+```
+shared/          浏览器与测试脚本共用的核心逻辑（纯 ESM，无 Node 依赖）
+  prompts.mjs      prompt 构造（图片 + 输出结构说明）
+  normalize.mjs    结果归一化 + 批注定位（保证高亮与批语严格对齐）
+  deepseek.mjs     调用、重试、截断 JSON 修复、错误文案
+src/
+  utils/byok.ts    localStorage 密钥读写
+  utils/grade.ts   前端批改流程
+  components/     移动端界面
+scripts/         测试与验证脚本
+test/            真实作文照片（测试用）
+```
+
+**批注定位**是这里最关键的一环：模型给的字符下标经常不准，所以
+`normalize.mjs` 只信任 `originalText`，重新在转写正文里定位并校验，
+定位不到的批注直接丢弃，宁可不标也不错标。真实 4 页作文实测 **21/21 全部精确命中**。
+
+## 测试
+
+```bash
+npm test            # 纯逻辑单测（批注定位、截断 JSON 修复）
+npm run test:api    # 真实调用 DeepSeek 跑通 4 页作文，校验全部契约
+npm run typecheck   # 类型检查
+```
+
+`npm run test:api` 需要 `.env` 里有可用的 key，会依次断言：
+标题非空、分数区间、总评 80–100 字、批注数量、维度分之和等于总分、
+**批注 100% 精确锚定**、批语长度可抄写、CORS 回显。
+
+`npm run fixture` 可把一次真实批改结果存成 `scripts/fixture-result.json`，
+供界面单测与静态预览复用。
+
+## 已知取舍
+
+- 手写体识别偶有偏差，正式使用前建议对照原图核对
+- 模型偶尔会把建议写得偏长，prompt 已约束，仍可能个别出现
+- 批改记录存在浏览器 IndexedDB，换设备或清缓存会丢失
