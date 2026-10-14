@@ -98,13 +98,15 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ result, imageUrls, o
 
       {/* ---- Legend + copy checklist ---- */}
       <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 px-1">
           {(['typo', 'grammar', 'punctuation', 'highlight'] as const)
             .filter((t) => counts[t])
             .map((t) => (
-              <span key={t} className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                <span className={`w-2 h-2 rounded-full ${TYPE_META[t].dotClass}`} />
-                {TYPE_META[t].label} {counts[t]}
+              // Render the label with the actual pen mark so the legend shows
+              // her what to draw: straight line = fix, wavy = praise.
+              <span key={t} className="flex items-center gap-1 text-[11px] text-slate-500">
+                <span className={`${TYPE_META[t].textClass} px-1 rounded`}>{TYPE_META[t].label}</span>
+                <span className="tabular-nums">{counts[t]}</span>
               </span>
             ))}
         </div>

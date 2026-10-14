@@ -19,18 +19,28 @@
 }
 
 @layer utilities {
-  /* Red wavy underline: the teacher's pen mark for a correction. */
-  .teacher-wavy-red {
-    text-decoration: underline wavy #ef4444 2px;
+  /*
+   * Teacher's red-pen convention, matched on screen so what she sees is what
+   * she draws on the paper:
+   *   straight underline = something to fix (错别字 / 病句 / 标点)
+   *   wavy underline     = a sentence worth praising (优美句子)
+   */
+  .teacher-line-red {
+    text-decoration: underline solid #ef4444 2px;
     text-underline-offset: 4px;
   }
 
-  .teacher-wavy-orange {
-    text-decoration: underline wavy #f97316 2px;
+  .teacher-line-orange {
+    text-decoration: underline solid #f97316 2px;
     text-underline-offset: 4px;
   }
 
-  /* Gold wavy underline: praise for a good phrase. */
+  .teacher-line-purple {
+    text-decoration: underline solid #a855f7 2px;
+    text-underline-offset: 4px;
+  }
+
+  /* Wavy gold: reserved for praise. */
   .teacher-wavy-gold {
     text-decoration: underline wavy #eab308 2px;
     text-underline-offset: 4px;

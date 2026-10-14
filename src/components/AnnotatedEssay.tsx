@@ -68,7 +68,8 @@ export const AnnotatedEssay: React.FC<AnnotatedEssayProps> = ({ paragraphs, anno
   return (
     <div className="rounded-2xl bg-white border border-slate-200 p-4">
       <p className="text-[11px] text-slate-400 leading-relaxed mb-4 pb-3 border-b border-slate-100">
-        原文<b>未作改动</b>,错处后面用〔　〕标出正确写法;每段下方的批注已全部展开,可直接照抄。
+        原文<b>未作改动</b>,错处后面用〔　〕标出正确写法。<b>直线</b>＝要改的地方,<b>波浪线</b>＝好句子;
+        每段下方的批注已全部展开,可直接照抄。
       </p>
 
       <div className="space-y-6">

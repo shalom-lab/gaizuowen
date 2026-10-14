@@ -7,7 +7,22 @@ actually used, so it reflects the real layout.
 """
 import json
 import glob
+import math
 from PIL import Image, ImageDraw, ImageFont
+
+
+def draw_wavy(d, x0, x1, y, color, amp=2.2, period=7):
+    """Wavy underline — the teacher's mark for a sentence worth praising."""
+    if x1 <= x0:
+        return
+    px, py = x0, y
+    x = x0
+    while x < x1:
+        nx = min(x + 1.0, x1)
+        ny = y + amp * math.sin((nx - x0) / period * 2 * math.pi)
+        d.line([(px, py), (nx, ny)], fill=color, width=2)
+        px, py = nx, ny
+        x = nx
 
 
 def pick(cands, size):
@@ -193,7 +208,11 @@ def draw_paragraph(text, anns, y):
             if kind == "mark":
                 t = TYPE[a["type"]]
                 d.rectangle([x - 1, y + 3, x + w + 1, y + 22], fill=t["bg"])
-                d.line([(x, y + 24), (x + w, y + 24)], fill=t["line"], width=2)
+                # Straight line = fix, wavy = praise (the teacher's convention).
+                if a["type"] == "highlight":
+                    draw_wavy(d, x, x + w, y + 24, t["line"])
+                else:
+                    d.line([(x, y + 24), (x + w, y + 24)], fill=t["line"], width=2)
             elif kind == "badge":
                 t = TYPE[a["type"]]
                 d.rectangle([x - 1, y + 4, x + w + 1, y + 21], fill=t["fix_bg"], outline=t["fix_bd"])
