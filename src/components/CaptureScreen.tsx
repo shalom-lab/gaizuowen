@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Camera,
   Image as ImageIcon,
@@ -7,44 +7,32 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Loader2,
-  AlertCircle,
   Sparkles,
   GripVertical,
 } from 'lucide-react';
-import { UploadedImagePage } from '../types';
+import { GradingSubmission, UploadedImagePage } from '../types';
 import { compressImage } from '../utils/imageCompress';
 
 interface CaptureScreenProps {
-  onGrade: (data: {
-    images: UploadedImagePage[];
-    gradeLevel: string;
-    studentName: string;
-    promptHint: string;
-  }) => void;
-  isLoading: boolean;
-  loadingStepText: string;
-  error: string | null;
-  onDismissError: () => void;
-  onRetry: () => void;
-  canRetry: boolean;
+  /** Adds the essay to the background queue; returns immediately. */
+  onSubmit: (data: GradingSubmission) => void;
+  /** How many essays are currently queued or running. */
+  queueCount: number;
+  hasKey: boolean;
 }
 
 const GRADES = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
 const LAST_META_KEY = 'essay-grader:last-meta';
 
-export const CaptureScreen: React.FC<CaptureScreenProps> = ({
-  onGrade,
-  isLoading,
-  loadingStepText,
-  error,
-  onDismissError,
-  onRetry,
-  canRetry,
-}) => {
+/**
+ * Capture and collect. Multi-page essays are gathered page by page, then handed
+ * to the background queue — the screen never blocks on grading.
+ */
+export const CaptureScreen: React.FC<CaptureScreenProps> = ({ onSubmit, queueCount, hasKey }) => {
   const [pages, setPages] = useState<UploadedImagePage[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [justQueued, setJustQueued] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   // Remember teacher/class context so the common case is zero-typing.
@@ -66,6 +54,13 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     }
   }, []);
 
+  // Clear the "queued" confirmation after a moment.
+  useEffect(() => {
+    if (!justQueued) return;
+    const t = setTimeout(() => setJustQueued(null), 2600);
+    return () => clearTimeout(t);
+  }, [justQueued]);
+
   const addFiles = async (files: FileList | File[]) => {
     const list = Array.from(files).filter((f) => f.type.startsWith('image/'));
     if (list.length === 0) return;
@@ -73,7 +68,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
       list.map(async (file, i) => ({
         id: `p-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
         dataUrl: await compressImage(file, 1800, 0.88),
-        name: file.name || `第 ${pages.length + i + 1} 页`,
+        name: file.name || `第 ${pageCountRef.current + i + 1} 页`,
       }))
     );
     setPages((prev) => {
@@ -82,6 +77,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
       return next;
     });
   };
+
+  // Keep a ref so addFiles can name pages without a stale closure.
+  const pageCountRef = useRef(0);
+  useEffect(() => {
+    pageCountRef.current = pages.length;
+  }, [pages]);
 
   const removePage = (index: number) => {
     setPages((prev) => {
@@ -102,57 +103,31 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     setActiveIndex(to);
   };
 
-  const startGrading = () => {
-    if (pages.length === 0) return;
+  const submit = () => {
+    if (pages.length === 0 || !hasKey) return;
     try {
       localStorage.setItem(LAST_META_KEY, JSON.stringify({ gradeLevel, studentName }));
     } catch {
       /* ignore */
     }
-    onGrade({ images: pages, gradeLevel, studentName, promptHint });
+    const label = studentName.trim() || `第 ${queueCount + 1} 篇`;
+    onSubmit({ images: pages, gradeLevel, studentName, promptHint });
+    // Hand off and immediately reset for the next essay.
+    setPages([]);
+    setActiveIndex(0);
+    setJustQueued(label);
   };
 
   const active = pages[activeIndex];
 
-  // ---- Loading state: full-screen, because the teacher is waiting on this ----
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
-        <div className="relative mb-8">
-          <div className="w-20 h-20 rounded-full bg-rose-50 flex items-center justify-center">
-            <Loader2 className="w-9 h-9 text-rose-600 animate-spin" />
-          </div>
-        </div>
-        <h2 className="text-lg font-bold text-slate-800">正在批改中…</h2>
-        <p className="mt-2 text-sm text-slate-500 max-w-xs leading-relaxed">{loadingStepText}</p>
-        <p className="mt-6 text-xs text-slate-400 max-w-xs leading-relaxed">
-          {pages.length > 1 ? `${pages.length} 页作文` : '作文'}识别与批注通常需要 30–90 秒，
-          请保持页面打开。
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="pb-32">
-      {/* Error banner */}
-      {error && (
-        <div className="mx-4 mt-4 p-3.5 rounded-2xl bg-red-50 border border-red-200 flex items-start gap-2.5">
-          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-red-800 leading-relaxed">{error}</p>
-            {canRetry && (
-              <button
-                onClick={onRetry}
-                className="mt-2.5 px-3.5 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold active:scale-95"
-              >
-                重新批改
-              </button>
-            )}
-          </div>
-          <button onClick={onDismissError} className="p-1 text-red-400 shrink-0">
-            <X className="w-4 h-4" />
-          </button>
+      {justQueued && (
+        <div className="mx-4 mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 shrink-0" />
+          <span>
+            <b>已加入后台队列</b>（{justQueued}）。可以继续拍下一篇,批好会提示你。
+          </span>
         </div>
       )}
 
@@ -160,10 +135,15 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
         /* ---------------- Empty state: two big, obvious actions ---------------- */
         <div className="px-4 pt-8">
           <div className="text-center mb-8">
-            <h1 className="text-xl font-bold text-slate-900">上传作文，生成批注</h1>
+            <h1 className="text-xl font-bold text-slate-900">上传作文,生成批注</h1>
             <p className="mt-2 text-sm text-slate-500 leading-relaxed">
-              拍下学生作文，逐字识别后给出可直接抄写的批注
+              拍下学生作文,后台自动识别并给出可直接抄写的批注
             </p>
+            {queueCount > 0 && (
+              <p className="mt-2 text-xs text-rose-600 font-semibold">
+                后台正在批改 {queueCount} 篇,你可以继续拍。
+              </p>
+            )}
           </div>
 
           <div className="space-y-3 max-w-md mx-auto">
@@ -176,7 +156,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               </div>
               <div className="text-left">
                 <div className="font-bold">拍照上传</div>
-                <div className="text-xs text-rose-100 mt-0.5">对准作文，拍一页即收录一页</div>
+                <div className="text-xs text-rose-100 mt-0.5">对准作文,拍一页即收录一页</div>
               </div>
             </button>
 
@@ -189,19 +169,18 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               </div>
               <div className="text-left">
                 <div className="font-bold">从相册选择</div>
-                <div className="text-xs text-slate-500 mt-0.5">可一次选中多张，自动按顺序排列</div>
+                <div className="text-xs text-slate-500 mt-0.5">可一次选中多张,自动按顺序排列</div>
               </div>
             </button>
           </div>
 
           <p className="mt-8 text-center text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
-            多页作文可以连续拍照收录，全部拍完再一起批改
+            多页作文连续拍照收录,全部拍完再一起提交
           </p>
         </div>
       ) : (
         /* ---------------- Collecting state ---------------- */
         <div className="px-4 pt-4">
-          {/* Big preview of the active page */}
           <div className="relative rounded-2xl overflow-hidden bg-slate-900">
             {active && (
               <img
@@ -222,7 +201,6 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             </button>
           </div>
 
-          {/* Page strip: tap to switch, drag to reorder, x to delete */}
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             {pages.map((p, i) => (
               <div
@@ -255,7 +233,6 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               </div>
             ))}
 
-            {/* Add-more tile */}
             <button
               onClick={() => cameraRef.current?.click()}
               className="shrink-0 w-20 h-24 rounded-xl border-2 border-dashed border-rose-300 bg-rose-50/60 flex flex-col items-center justify-center gap-1 text-rose-600"
@@ -299,7 +276,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             </div>
           )}
 
-          {/* Collapsible student/grade options — collapsed by default on mobile */}
+          {/* Collapsible options — collapsed by default on mobile */}
           <div className="mt-4 rounded-2xl border border-slate-200 bg-white overflow-hidden">
             <button
               onClick={() => setShowOptions((v) => !v)}
@@ -360,16 +337,26 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
         </div>
       )}
 
-      {/* ---- Sticky primary action (thumb reach) ---- */}
+      {/* ---- Sticky primary action ---- */}
       {pages.length > 0 && (
         <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <button
-            onClick={startGrading}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-rose-600 text-white font-bold text-base shadow-lg shadow-rose-200 active:scale-[0.98] transition-transform"
-          >
-            <Sparkles className="w-5 h-5" />
-            开始批改（{pages.length} 页）
-          </button>
+          <div className="max-w-2xl mx-auto">
+            <button
+              onClick={submit}
+              disabled={!hasKey}
+              className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-base shadow-lg transition-transform active:scale-[0.98] ${
+                hasKey
+                  ? 'bg-rose-600 text-white shadow-rose-200'
+                  : 'bg-slate-200 text-slate-400 shadow-none'
+              }`}
+            >
+              <Sparkles className="w-5 h-5" />
+              {hasKey ? `提交批改(${pages.length} 页)` : '请先配置 API Key'}
+            </button>
+            <p className="mt-1.5 text-center text-[11px] text-slate-400">
+              提交后立即可以拍下一篇,不用等
+            </p>
+          </div>
         </div>
       )}
 

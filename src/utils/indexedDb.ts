@@ -1,4 +1,5 @@
-import { EssayGradingResult } from '../types';
+import { EssayGradingResult, GradingJob } from '../types';
+import { normalizeOnLoad } from '../../shared/queue.mjs';
 
 export interface StoredEssayRecord {
   id: string;
@@ -143,5 +144,61 @@ export async function loadActiveDraftFromIndexedDB(): Promise<{
     });
   } catch {
     return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Background grading queue
+//
+// Kept in the existing draft store under its own key, so no schema migration is
+// needed. Jobs still marked `running` when the page unloads are restored as
+// `pending` and re-run — the model call is idempotent, so the only cost is
+// tokens, which beats silently losing a queued essay.
+// ---------------------------------------------------------------------------
+
+const JOB_QUEUE_KEY = 'job_queue';
+
+export async function saveJobQueueToIndexedDB(jobs: GradingJob[]): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DRAFT_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(DRAFT_STORE_NAME);
+    // Strip transient step text; it is only meaningful while running.
+    const slim = jobs.filter((j) => j.status !== 'running').map((j) => ({ ...j, step: '' }));
+    const req = store.put({ key: JOB_QUEUE_KEY, jobs: slim, updatedAt: Date.now() });
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function loadJobQueueFromIndexedDB(): Promise<GradingJob[]> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(DRAFT_STORE_NAME, 'readonly');
+      const store = tx.objectStore(DRAFT_STORE_NAME);
+      const req = store.get(JOB_QUEUE_KEY);
+      req.onsuccess = () => {
+        const jobs = (req.result?.jobs || []) as GradingJob[];
+        resolve(normalizeOnLoad(jobs) as GradingJob[]);
+      };
+      req.onerror = () => resolve([]);
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function clearJobQueueFromIndexedDB(): Promise<void> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(DRAFT_STORE_NAME, 'readwrite');
+      const req = tx.objectStore(DRAFT_STORE_NAME).delete(JOB_QUEUE_KEY);
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();
+    });
+  } catch {
+    /* ignore */
   }
 }

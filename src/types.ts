@@ -69,3 +69,34 @@ export interface AnnotationCounts {
   punctuation: number;
   highlight: number;
 }
+
+export interface GradingSubmission {
+  images: UploadedImagePage[];
+  gradeLevel: string;
+  studentName: string;
+  promptHint: string;
+}
+
+export type JobStatus = 'pending' | 'running' | 'done' | 'error';
+
+/**
+ * One essay in the background grading queue.
+ *
+ * Grading is deliberately decoupled from what is on screen: the teacher submits
+ * an essay and immediately goes back to capturing the next one, while jobs run
+ * silently in the background. A finished job never steals focus from a result
+ * the teacher is already reading — it just raises a quiet notification.
+ */
+export interface GradingJob {
+  id: string;
+  status: JobStatus;
+  /** Human-readable progress line, shown only in the queue detail. */
+  step: string;
+  submission: GradingSubmission;
+  result?: EssayGradingResult;
+  error?: string;
+  createdAt: number;
+  finishedAt?: number;
+  /** True once the teacher has opened this result. */
+  read: boolean;
+}

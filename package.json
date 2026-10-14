@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test-annotated-essay.mjs && node scripts/test-json-recovery.mjs",
+    "test": "node scripts/test-queue.mjs && node scripts/test-annotated-essay.mjs && node scripts/test-json-recovery.mjs",
     "test:api": "node scripts/e2e-test.mjs --pages 4",
     "test:cors": "node scripts/test-cors.mjs",
     "fixture": "node scripts/save-fixture.mjs",
