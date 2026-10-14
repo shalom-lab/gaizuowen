@@ -19,6 +19,8 @@ interface CaptureScreenProps {
   /** How many essays are currently queued or running. */
   queueCount: number;
   hasKey: boolean;
+  /** Lets the app avoid auto-opening a result while pages are being collected. */
+  onCollectingChange?: (collecting: boolean) => void;
 }
 
 const GRADES = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
@@ -28,7 +30,12 @@ const LAST_META_KEY = 'essay-grader:last-meta';
  * Capture and collect. Multi-page essays are gathered page by page, then handed
  * to the background queue — the screen never blocks on grading.
  */
-export const CaptureScreen: React.FC<CaptureScreenProps> = ({ onSubmit, queueCount, hasKey }) => {
+export const CaptureScreen: React.FC<CaptureScreenProps> = ({
+  onSubmit,
+  queueCount,
+  hasKey,
+  onCollectingChange,
+}) => {
   const [pages, setPages] = useState<UploadedImagePage[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -61,6 +68,15 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({ onSubmit, queueCou
     return () => clearTimeout(t);
   }, [justQueued]);
 
+  // Keeps page naming and the collecting flag correct without stale closures.
+  const pageCountRef = useRef(0);
+  useEffect(() => {
+    pageCountRef.current = pages.length;
+    // Mid-collection means the teacher is aiming the camera at page N+1 —
+    // a finished result must not steal the screen at that moment.
+    onCollectingChange?.(pages.length > 0);
+  }, [pages, onCollectingChange]);
+
   const addFiles = async (files: FileList | File[]) => {
     const list = Array.from(files).filter((f) => f.type.startsWith('image/'));
     if (list.length === 0) return;
@@ -77,12 +93,6 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({ onSubmit, queueCou
       return next;
     });
   };
-
-  // Keep a ref so addFiles can name pages without a stale closure.
-  const pageCountRef = useRef(0);
-  useEffect(() => {
-    pageCountRef.current = pages.length;
-  }, [pages]);
 
   const removePage = (index: number) => {
     setPages((prev) => {

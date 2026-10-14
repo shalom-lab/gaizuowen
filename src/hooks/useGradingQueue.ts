@@ -13,11 +13,17 @@ import {
   saveGradedEssayToIndexedDB,
   saveJobQueueToIndexedDB,
   loadJobQueueFromIndexedDB,
-  clearJobQueueFromIndexedDB,
   StoredEssayRecord,
 } from '../utils/indexedDb';
 
 const STEPS = ['识别手写字迹', '逐页转写原文', '查找错别字与病句', '整理批注与总评'];
+
+/**
+ * Finished jobs are kept only briefly, so the persisted queue cannot grow
+ * without bound. Their results are already archived in 批改记录 (which holds
+ * the images too), so dropping them here loses nothing viewable.
+ */
+const KEEP_FINISHED = 5;
 
 interface UseGradingQueueOptions {
   apiKey: string;
@@ -28,19 +34,20 @@ interface UseGradingQueueOptions {
 
 export interface GradingQueue {
   jobs: GradingJob[];
+  /** True once the persisted queue has been read back. */
+  hydrated: boolean;
   /** The finished job whose result is currently on screen. */
   activeJob: GradingJob | null;
   activeJobId: string | null;
   runningCount: number;
   pendingCount: number;
-  /** Finished but not yet opened — drives the quiet notification. */
-  unreadJobs: GradingJob[];
+  /** Finished but not yet opened — drives the history badge. */
+  unreadCount: number;
   enqueue: (submission: GradingSubmission) => string | null;
   openJob: (id: string) => void;
   closeActiveJob: () => void;
   dismissJob: (id: string) => void;
   retryJob: (id: string) => void;
-  clearFinished: () => void;
 }
 
 /**
@@ -203,11 +210,16 @@ export function useGradingQueue({ apiKey, baseUrl, onArchived }: UseGradingQueue
     );
   }, []);
 
-  const clearFinished = useCallback(() => {
-    setJobs((prev) => prev.filter((j) => j.status === 'pending' || j.status === 'running'));
-    setActiveJobId(null);
-    clearJobQueueFromIndexedDB().catch(() => {});
-  }, []);
+  // ---- keep the queue bounded ----
+  useEffect(() => {
+    const finished = jobs.filter((j) => j.status === 'done' || j.status === 'error');
+    if (finished.length <= KEEP_FINISHED) return;
+    const keep = new Set(finished.slice(-KEEP_FINISHED).map((j) => j.id));
+    if (activeJobId) keep.add(activeJobId);
+    setJobs((prev) =>
+      prev.filter((j) => j.status === 'pending' || j.status === 'running' || keep.has(j.id))
+    );
+  }, [jobs, activeJobId]);
 
   const activeJob = useMemo(
     () => (activeJobId ? jobs.find((j) => j.id === activeJobId && j.status === 'done') || null : null),
@@ -216,18 +228,18 @@ export function useGradingQueue({ apiKey, baseUrl, onArchived }: UseGradingQueue
 
   return {
     jobs,
+    hydrated,
     activeJob,
     activeJobId,
     runningCount: jobs.filter((j) => j.status === 'running').length,
     pendingCount: jobs.filter((j) => j.status === 'pending').length,
-    unreadJobs: jobs.filter((j) => j.status === 'done' && !j.read),
+    unreadCount: jobs.filter((j) => j.status === 'done' && !j.read).length,
     enqueue,
     openJob,
     closeActiveJob,
     dismissJob,
     retryJob,
-    clearFinished,
   };
 }
 
-export { STEPS as QUEUE_STEPS, MAX_CONCURRENT, MAX_QUEUED };
+export { STEPS as QUEUE_STEPS, MAX_CONCURRENT, MAX_QUEUED, KEEP_FINISHED };

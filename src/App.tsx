@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CaptureScreen } from './components/CaptureScreen';
 import { ResultScreen } from './components/ResultScreen';
 import { HistorySheet } from './components/HistorySheet';
 import { SettingsSheet } from './components/SettingsSheet';
 import { QueueBar } from './components/QueueBar';
+import { ToastStack, ToastItem } from './components/ToastStack';
 import { GradingSubmission } from './types';
 import {
   getAllGradedEssaysFromIndexedDB,
@@ -20,11 +21,12 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  /** An older essay opened from history, shown without touching the queue. */
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  /** An essay opened from history, shown without touching the queue. */
   const [archivedView, setArchivedView] = useState<StoredEssayRecord | null>(null);
+  /** True while the teacher is mid-way through collecting an essay's pages. */
+  const [collecting, setCollecting] = useState(false);
 
-  // BYOK secrets are read synchronously so the first render already knows
-  // whether a key exists — the contract is "read at startup, never nag".
   const [secrets, setSecrets] = useState<Secrets>(() => loadSecrets());
   const hasKey = Boolean(secrets.apiKey);
 
@@ -46,10 +48,53 @@ export default function App() {
     refreshHistory();
   }, [refreshHistory]);
 
-  /**
-   * Submit an essay. It joins the queue and the teacher is immediately free to
-   * capture the next one — nothing blocks on the model call.
-   */
+  // ---- completion notices: one transient toast each, nothing to close ----
+  const seenDone = useRef<Set<string>>(new Set());
+  const seeded = useRef(false);
+
+  useEffect(() => {
+    if (!queue.hydrated) return;
+
+    // On restore, treat previously-finished jobs as already announced.
+    if (!seeded.current) {
+      seeded.current = true;
+      queue.jobs.forEach((j) => {
+        if (j.status === 'done') seenDone.current.add(j.id);
+      });
+      return;
+    }
+
+    const fresh = queue.jobs.filter((j) => j.status === 'done' && !seenDone.current.has(j.id));
+    if (fresh.length === 0) return;
+    fresh.forEach((j) => seenDone.current.add(j.id));
+
+    setToasts((prev) =>
+      [
+        ...prev,
+        ...fresh.map((j) => ({
+          id: `toast-${j.id}`,
+          jobId: j.id,
+          title: j.result?.title || '未命名作文',
+          score: j.result?.overallScore,
+          annotations: j.result?.annotations.length,
+        })),
+      ].slice(-2)
+    );
+  }, [queue.jobs, queue.hydrated]);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const openJob = useCallback(
+    (jobId: string) => {
+      setArchivedView(null);
+      queue.openJob(jobId);
+      dismissToast(`toast-${jobId}`);
+    },
+    [queue, dismissToast]
+  );
+
   const handleSubmit = (data: GradingSubmission) => {
     if (!secrets.apiKey) {
       setSettingsOpen(true);
@@ -64,6 +109,15 @@ export default function App() {
     setNotice(null);
   };
 
+  // ---- auto-open only when the teacher is genuinely idle ----
+  // Never interrupt active reading, and never yank the screen away mid-capture.
+  useEffect(() => {
+    if (archivedView || collecting) return;
+    if (queue.activeJobId) return;
+    const next = queue.jobs.find((j) => j.status === 'done' && !j.read);
+    if (next) openJob(next.id);
+  }, [queue.jobs, queue.activeJobId, archivedView, collecting, openJob]);
+
   const liveJob = queue.activeJob;
   const shownResult = archivedView?.gradingResult ?? liveJob?.result ?? null;
   const shownImages =
@@ -76,8 +130,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
-      {/* Compact, sticky header */}
-      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-200">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center shrink-0">
@@ -106,9 +159,18 @@ export default function App() {
               aria-label="批改记录"
             >
               <History className="w-5 h-5" />
-              {history.length > 0 && (
-                <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-0.5 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center">
-                  {history.length > 99 ? '99' : history.length}
+              {/* unread finished essays take priority over the total count */}
+              {(queue.unreadCount > 0 || history.length > 0) && (
+                <span
+                  className={`absolute top-1 right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-white text-[9px] font-bold flex items-center justify-center ${
+                    queue.unreadCount > 0 ? 'bg-emerald-500' : 'bg-rose-600'
+                  }`}
+                >
+                  {queue.unreadCount > 0
+                    ? queue.unreadCount
+                    : history.length > 99
+                      ? '99'
+                      : history.length}
                 </span>
               )}
             </button>
@@ -126,16 +188,15 @@ export default function App() {
         </div>
       </header>
 
+      <ToastStack items={toasts} onOpen={openJob} onDismiss={dismissToast} />
+
       <main className="flex-1 w-full max-w-2xl mx-auto">
-        {/* Silent background-grading status; renders nothing when idle. */}
         <QueueBar
           jobs={queue.jobs}
           runningCount={queue.runningCount}
           pendingCount={queue.pendingCount}
-          onOpen={queue.openJob}
           onDismiss={queue.dismissJob}
           onRetry={queue.retryJob}
-          onClearFinished={queue.clearFinished}
         />
 
         {notice && (
@@ -144,7 +205,6 @@ export default function App() {
           </div>
         )}
 
-        {/* First-run guidance, non-blocking */}
         {!hasKey && !shownResult && (
           <div className="mx-4 mt-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-200">
             <div className="flex items-start gap-2.5">
@@ -172,6 +232,7 @@ export default function App() {
             onSubmit={handleSubmit}
             queueCount={queue.pendingCount + queue.runningCount}
             hasKey={hasKey}
+            onCollectingChange={setCollecting}
           />
         )}
       </main>
@@ -182,7 +243,6 @@ export default function App() {
         records={history}
         onSelect={(rec) => {
           setHistoryOpen(false);
-          // Archived essays may have no live queue job, so show them directly.
           setArchivedView(rec);
         }}
         onDelete={async (id) => {
