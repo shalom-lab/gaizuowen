@@ -54,3 +54,24 @@ export function pickAutoOpenId(jobs, activeJobId) {
 export function normalizeOnLoad(jobs) {
   return jobs.map((j) => (j.status === 'running' ? { ...j, status: 'pending', step: '' } : j));
 }
+
+/** Silent self-healing on a phone: two extra tries, then tell the teacher. */
+export const MAX_AUTO_RETRIES = 2;
+
+/**
+ * Decide what to do after a failed attempt.
+ *
+ * `isRetryable` is injected so this module stays dependency-free: transient
+ * failures retry on their own, but anything the teacher must fix (bad key, no
+ * balance) surfaces immediately instead of retrying forever behind her back.
+ *
+ * @returns {{action:'retry'|'fail', attempts:number, delayMs:number}}
+ */
+export function retryDecision(errorMessage, attempts, isRetryable, maxRetries = MAX_AUTO_RETRIES) {
+  const next = (attempts || 0) + 1;
+  if (next <= maxRetries && isRetryable(errorMessage)) {
+    // Back off a little more each time; a phone may be switching networks.
+    return { action: 'retry', attempts: next, delayMs: 4000 * next };
+  }
+  return { action: 'fail', attempts: next, delayMs: 0 };
+}

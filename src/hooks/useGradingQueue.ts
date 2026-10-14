@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GradingJob, GradingSubmission } from '../types';
 import { gradeEssay } from '../utils/grade';
-import { formatErrorMessage } from '../../shared/deepseek.mjs';
+import { formatErrorMessage, isRetryable } from '../../shared/deepseek.mjs';
 import {
   MAX_CONCURRENT,
   MAX_QUEUED,
+  MAX_AUTO_RETRIES,
   canEnqueue,
   pickAutoOpenId,
   pickNextJob,
+  retryDecision,
 } from '../../shared/queue.mjs';
 import {
   saveGradedEssayToIndexedDB,
@@ -142,12 +144,32 @@ export function useGradingQueue({ apiKey, baseUrl, onArchived }: UseGradingQueue
           console.warn('[queue] archive failed:', e);
         }
       } catch (err) {
-        patchJob(job.id, {
-          status: 'error',
-          step: '',
-          error: formatErrorMessage(err),
-          finishedAt: Date.now(),
-        });
+        const raw = String((err as any)?.message || err);
+        const decision = retryDecision(raw, job.attempts, isRetryable);
+
+        if (decision.action === 'retry') {
+          // Heal silently: hold the slot while backing off, then requeue.
+          // `inFlight` is released so this does not consume a concurrency slot
+          // and other essays keep moving.
+          patchJob(job.id, {
+            status: 'running',
+            step: `网络波动,自动重试 ${decision.attempts}/${MAX_AUTO_RETRIES}`,
+            attempts: decision.attempts,
+            error: undefined,
+          });
+          inFlight.current.delete(job.id);
+          setTimeout(() => {
+            patchJob(job.id, { status: 'pending', step: '', attempts: decision.attempts });
+          }, decision.delayMs);
+        } else {
+          patchJob(job.id, {
+            status: 'error',
+            step: '',
+            error: formatErrorMessage(err),
+            attempts: decision.attempts,
+            finishedAt: Date.now(),
+          });
+        }
       } finally {
         clearInterval(timer);
         inFlight.current.delete(job.id);

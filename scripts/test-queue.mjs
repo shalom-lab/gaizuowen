@@ -6,12 +6,15 @@ import { strict as assert } from 'assert';
 import {
   MAX_CONCURRENT,
   MAX_QUEUED,
+  MAX_AUTO_RETRIES,
   activeCount,
   canEnqueue,
   pickNextJob,
   pickAutoOpenId,
   normalizeOnLoad,
+  retryDecision,
 } from '../shared/queue.mjs';
+import { isRetryable } from '../shared/deepseek.mjs';
 
 let pass = 0;
 let fail = 0;
@@ -140,6 +143,43 @@ check('full drain: 5 queued essays all complete, max 2 at once', () => {
   assert.equal(jobs.filter((j) => j.status === 'done').length, 5, 'all essays must finish');
   assert.ok(peak <= MAX_CONCURRENT, 'peak concurrency ' + peak + ' exceeded cap');
   assert.ok(peak >= 2, 'scheduler should have used the available parallelism');
+});
+
+// ---- silent self-healing ----
+
+check('a network blip retries without bothering the teacher', () => {
+  const d = retryDecision('fetch failed', 0, isRetryable);
+  assert.equal(d.action, 'retry');
+  assert.equal(d.attempts, 1);
+  assert.ok(d.delayMs > 0, 'must back off before retrying');
+});
+
+check('backoff grows with each attempt', () => {
+  const a = retryDecision('HTTP 500: oops', 0, isRetryable);
+  const b = retryDecision('HTTP 500: oops', 1, isRetryable);
+  assert.ok(b.delayMs > a.delayMs, 'backoff should increase');
+});
+
+check('retries stop after MAX_AUTO_RETRIES and surface to her', () => {
+  let attempts = 0;
+  let d = retryDecision('fetch failed', attempts, isRetryable);
+  while (d.action === 'retry') {
+    attempts = d.attempts;
+    d = retryDecision('fetch failed', attempts, isRetryable);
+    assert.ok(attempts <= MAX_AUTO_RETRIES, 'exceeded retry budget');
+  }
+  assert.equal(d.action, 'fail');
+  assert.equal(attempts, MAX_AUTO_RETRIES);
+});
+
+check('a bad API key is NOT retried behind her back', () => {
+  const d = retryDecision('HTTP 401: invalid api key', 0, isRetryable);
+  assert.equal(d.action, 'fail', 'she must be told, not silently looped');
+});
+
+check('an empty balance is NOT retried behind her back', () => {
+  const d = retryDecision('HTTP 402: insufficient balance', 0, isRetryable);
+  assert.equal(d.action, 'fail');
 });
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

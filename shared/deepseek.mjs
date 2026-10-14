@@ -83,6 +83,21 @@ export function extractJson(text) {
   throw new Error('模型返回的 JSON 不完整，请重试');
 }
 
+/**
+ * Is this failure worth another try without the teacher's involvement?
+ *
+ * A blip on a phone should heal itself; only problems the teacher can actually
+ * fix (bad key, no balance) should ever reach her.
+ */
+export function isRetryable(error) {
+  const s = String((error && error.message) || error || '');
+  // Things she must resolve herself — never retry these.
+  if (/\b401\b|\b402\b|invalid api key|authentication|insufficient|balance/i.test(s)) return false;
+  return /abort|timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|fetch failed|network|load failed|socket|HTTP 5\d\d|\b429\b|rate limit|overload|繁忙|网络|截断|不完整/i.test(
+    s
+  );
+}
+
 /** Turn raw transport errors into something a teacher can act on. */
 export function formatErrorMessage(error) {
   const raw = String((error && error.message) || error || '');

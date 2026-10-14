@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Star, Copy, Check, Image as ImageIcon, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, Copy, Check, Image as ImageIcon, X, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import { EssayGradingResult, AnnotationItem } from '../types';
 import { TYPE_META } from '../utils/annotationMeta';
 import { AnnotatedEssay } from './AnnotatedEssay';
@@ -19,6 +19,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ result, imageUrls, o
   const [photosOpen, setPhotosOpen] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -26,19 +27,60 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ result, imageUrls, o
     return c;
   }, [result.annotations]);
 
-  const copyComment = async () => {
+  const copyText = async (text: string): Promise<boolean> => {
     try {
-      await navigator.clipboard.writeText(result.summaryComment);
+      await navigator.clipboard.writeText(text);
+      return true;
     } catch {
-      const ta = document.createElement('textarea');
-      ta.value = result.summaryComment;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        return true;
+      } catch {
+        return false;
+      }
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1600);
+  };
+
+  const copyComment = async () => {
+    if (await copyText(result.summaryComment)) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    }
+  };
+
+  /** Plain numbered list — for pasting into a class group or a grading record. */
+  const buildChecklist = () => {
+    const lines: string[] = [`《${result.title}》`, ''];
+    const byParagraph = new Map<number, AnnotationItem[]>();
+    for (const a of result.annotations) {
+      const k = a.paragraphIndex ?? 0;
+      if (!byParagraph.has(k)) byParagraph.set(k, []);
+      byParagraph.get(k)!.push(a);
+    }
+    for (const [pIdx, list] of [...byParagraph.entries()].sort((x, y) => x[0] - y[0])) {
+      lines.push(`第 ${pIdx + 1} 段`);
+      for (const a of list.sort((x, y) => (x.order ?? 0) - (y.order ?? 0))) {
+        const fix = a.suggestedText ? `${a.originalText} → ${a.suggestedText}` : `${a.originalText}（${a.category}）`;
+        lines.push(`${a.order}. ${fix}  ${a.explanation}`);
+      }
+      lines.push('');
+    }
+    lines.push('总评', result.summaryComment);
+    return lines.join('\n').trim();
+  };
+
+  const copyAll = async () => {
+    if (await copyText(buildChecklist())) {
+      setCopiedAll(true);
+      setTimeout(() => setCopiedAll(false), 1800);
+    }
   };
 
   return (
@@ -54,16 +96,25 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ result, imageUrls, o
         </div>
       </div>
 
-      {/* ---- Legend ---- */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-3 px-1">
-        {(['typo', 'grammar', 'punctuation', 'highlight'] as const)
-          .filter((t) => counts[t])
-          .map((t) => (
-            <span key={t} className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <span className={`w-2 h-2 rounded-full ${TYPE_META[t].dotClass}`} />
-              {TYPE_META[t].label} {counts[t]}
-            </span>
-          ))}
+      {/* ---- Legend + copy checklist ---- */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1">
+          {(['typo', 'grammar', 'punctuation', 'highlight'] as const)
+            .filter((t) => counts[t])
+            .map((t) => (
+              <span key={t} className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                <span className={`w-2 h-2 rounded-full ${TYPE_META[t].dotClass}`} />
+                {TYPE_META[t].label} {counts[t]}
+              </span>
+            ))}
+        </div>
+        <button
+          onClick={copyAll}
+          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 active:scale-95"
+        >
+          {copiedAll ? <Check className="w-3 h-3 text-emerald-600" /> : <ClipboardList className="w-3 h-3" />}
+          {copiedAll ? '已复制' : '复制清单'}
+        </button>
       </div>
 
       {/* ---- The annotated essay: read straight down ---- */}

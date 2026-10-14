@@ -14,6 +14,7 @@ import {
 } from './utils/indexedDb';
 import { loadSecrets, Secrets } from './utils/byok';
 import { useGradingQueue } from './hooks/useGradingQueue';
+import { useWakeLock } from './hooks/useWakeLock';
 import { BookOpen, History, Settings, KeyRound } from 'lucide-react';
 
 export default function App() {
@@ -127,6 +128,10 @@ export default function App() {
     setArchivedView(null);
     queue.closeActiveJob();
   };
+
+  // While the teacher is reading comments and writing them on paper, the screen
+  // must not dim on her. Also held while she is lining up the next photo.
+  useWakeLock(Boolean(shownResult) || collecting);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">

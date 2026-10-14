@@ -97,6 +97,8 @@ export interface GradingJob {
   error?: string;
   createdAt: number;
   finishedAt?: number;
+  /** How many attempts have been made, including silent auto-retries. */
+  attempts?: number;
   /** True once the teacher has opened this result. */
   read: boolean;
 }
