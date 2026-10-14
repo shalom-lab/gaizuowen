@@ -129,7 +129,21 @@ export const AnnotatedEssay: React.FC<AnnotatedEssayProps> = ({ paragraphs, anno
                           {a.order}
                         </span>
                         <div className="text-[13px] leading-relaxed min-w-0">
-                          <span className="font-serif text-slate-500 line-through decoration-red-400">
+                          {/*
+                            Strikethrough means "replace this", so it must never
+                            land on a sentence we are praising — that reads as if
+                            the good sentence were wrong. Praise gets the wavy
+                            line instead, matching the pen mark on paper.
+                          */}
+                          <span
+                            className={`font-serif ${
+                              a.suggestedText
+                                ? 'text-slate-500 line-through decoration-red-400'
+                                : a.type === 'highlight'
+                                  ? 'text-amber-900 teacher-wavy-gold'
+                                  : 'text-slate-600'
+                            }`}
+                          >
                             {a.originalText}
                           </span>
                           {a.suggestedText ? (

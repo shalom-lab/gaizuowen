@@ -231,9 +231,16 @@ def draw_paragraph(text, anns, y):
             d.text((X0 + 18 if a["order"] > 9 else X0 + 19, y + 2), str(a["order"]), font=f_tiny, fill=WHITE)
 
             nx = X0 + 36
-            d.text((nx, y), a["originalText"], font=f_note, fill=SLATE_500)
-            nx += d.textlength(a["originalText"], font=f_note) + 1
-            d.line([(X0 + 36, y + 8), (nx, y + 8)], fill=(248, 113, 113))
+            # Strikethrough only means "replace this" — never on praise.
+            if a.get("suggestedText"):
+                d.text((nx, y), a["originalText"], font=f_note, fill=SLATE_500)
+                nx += d.textlength(a["originalText"], font=f_note) + 1
+                d.line([(X0 + 36, y + 8), (nx, y + 8)], fill=(248, 113, 113))
+            else:
+                d.text((nx, y), a["originalText"], font=f_note, fill=(120, 53, 15))
+                w = d.textlength(a["originalText"], font=f_note)
+                draw_wavy(d, nx, nx + w, y + 12, TYPE[a["type"]]["line"], amp=1.6, period=5)
+                nx += w + 1
             if a.get("suggestedText"):
                 fix = a["suggestedText"]
                 fw = d.textlength(fix, font=f_note_b)
