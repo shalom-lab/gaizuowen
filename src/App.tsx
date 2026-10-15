@@ -14,6 +14,7 @@ import {
   clearAllEssaysFromIndexedDB,
   StoredEssayRecord,
 } from './utils/indexedDb';
+import { ensureDemoEssay } from './utils/seedDemo';
 import { loadSecrets, Secrets } from './utils/byok';
 import { useGradingQueue } from './hooks/useGradingQueue';
 import { useWakeLock } from './hooks/useWakeLock';
@@ -79,7 +80,11 @@ export default function App() {
   });
 
   useEffect(() => {
-    refreshHistory();
+    (async () => {
+      // Empty first visit → drop in one sample so「批改记录」isn't a blank wall.
+      await ensureDemoEssay();
+      await refreshHistory();
+    })();
   }, [refreshHistory]);
 
   // ---- completion notices: one transient toast each, nothing to close ----

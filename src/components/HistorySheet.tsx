@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { X, Trash2, Search, BookOpen, Check, FileDown, AlertTriangle } from 'lucide-react';
 import { StoredEssayRecord } from '../utils/indexedDb';
+import { isDemoEssayId } from '../utils/seedDemo';
 import { scoreStyle } from '../utils/scoreStyle';
 
 interface HistorySheetProps {
@@ -227,6 +228,9 @@ export const HistorySheet: React.FC<HistorySheetProps> = ({
                         <span className={`px-1.5 rounded border ${style.bg} ${style.text} ${style.border}`}>
                           {r.letterGrade}
                         </span>
+                        {isDemoEssayId(r.id) && (
+                          <span className="px-1.5 rounded bg-slate-200 text-slate-600 font-bold">示例</span>
+                        )}
                         {isNew && (
                           // Same tone as the top-right badge: 待你查看.
                           <span className="px-1.5 rounded bg-rose-600 text-white font-bold">新</span>

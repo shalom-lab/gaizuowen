@@ -1,0 +1,315 @@
+{
+  "paragraphs": [
+    {
+      "paragraphIndex": 0,
+      "text": "金秋送暖，金桂飘香，为鼓励中小学生运动的活力，学校开展了一次拔河比赛。"
+    },
+    {
+      "paragraphIndex": 1,
+      "text": "比赛在操场举行。一条又粗又粗的麻绳安静地躺在地上，上面还有一条艳丽的红布绸子，中间地上用白色粉笔画了两条白线，我班同学个个精神饱满，有的同学在做热身运动，有的和同学谈论战术，还有的信心满满地坐在候场区，好像自己胜券在握。"
+    },
+    {
+      "paragraphIndex": 2,
+      "text": "比赛开始了。规则是三局两胜，我班和五班、四班全部拿下，这时，我班和三班比，赛场上火药味十足，\"开始！\"随着老师一令下，我班同学用出吃奶的力气，身体向后仰，脚底如同有胶水一样粘在地面上，像一棵棵挺拔的大树站立着，可这调皮的红布绸子不听话，一时向我班方向走一点，一时向三班方向走，突然，三班同学手没抓住，绳子松了，我班同学抓住机会，向后一拉，红布绸子到我们这来了，老师说：\"停！本局1班胜，马上开始和二班对量。\"我班同学喜笑颜开。"
+    },
+    {
+      "paragraphIndex": 3,
+      "text": "此时，同学们和老师正在商量对法。总决赛开始了，我班同学有上一场的经验，这一次变的稳重起来。比赛开始，绳子马上绷直，我班同学个个面红耳赤，手紧紧地握住绳子。我班的小陈在前面用出九牛二虎之力，身体后仰，双脚抓住地面，纹丝不动，最后面的小夏紧紧握着绳子，红布绸子正在来回转，比赛来到了白热化，就在双方谁也不让谁时，二班同学一个不小心摔倒了，我班同学抓住机会，猛地一拉，可二班反应迅速，红布绸子还不动，这时，二班同学又一次摔倒，后面的同学也一个个倒下，我班同学轻轻一拉，红布绸子成功来到了我班区域内，\"我们成功胜利了！\""
+    },
+    {
+      "paragraphIndex": 4,
+      "text": "拉拉队的同学一手举着拉拉棒，一边挥，一边喊：\"我们成功了！\"我班同学听到胜利后，个个眉开眼笑，相互拥抱，一蹦三尺高，这时，二班同学也投来认同的目光。我心里自豪极了。"
+    },
+    {
+      "paragraphIndex": 5,
+      "text": "这一次拔河比赛让我明白，团结才是力量。"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "ann-0-0",
+      "type": "grammar",
+      "category": "搭配不当",
+      "originalText": "金秋送暖",
+      "suggestedText": "秋风送爽",
+      "explanation": "秋日天凉，用『秋风送爽』更贴切",
+      "paragraphIndex": 0,
+      "charStart": 0,
+      "charEnd": 4,
+      "order": 1
+    },
+    {
+      "id": "ann-1-11",
+      "type": "grammar",
+      "category": "搭配不当",
+      "originalText": "鼓励中小学生运动的活力",
+      "suggestedText": "激发中小学生运动的热情",
+      "explanation": "『活力』要『激发』，不能『鼓励』",
+      "paragraphIndex": 0,
+      "charStart": 11,
+      "charEnd": 22,
+      "order": 2
+    },
+    {
+      "id": "ann-2-25",
+      "type": "grammar",
+      "category": "用词不当",
+      "originalText": "开展了一次拔河比赛",
+      "suggestedText": "举行了一次拔河比赛",
+      "explanation": "比赛用『举行』，『开展』多用于活动",
+      "paragraphIndex": 0,
+      "charStart": 25,
+      "charEnd": 34,
+      "order": 3
+    },
+    {
+      "id": "ann-3-10",
+      "type": "grammar",
+      "category": "重复啰嗦",
+      "originalText": "又粗又粗",
+      "suggestedText": "又粗又长",
+      "explanation": "两个『又粗』重复，换成『又粗又长』",
+      "paragraphIndex": 1,
+      "charStart": 10,
+      "charEnd": 14,
+      "order": 4
+    },
+    {
+      "id": "ann-4-17",
+      "type": "highlight",
+      "category": "拟人佳句",
+      "originalText": "安静地躺在地上",
+      "explanation": "麻绳会『安静地躺』，拟人真生动",
+      "paragraphIndex": 1,
+      "charStart": 17,
+      "charEnd": 24,
+      "order": 5
+    },
+    {
+      "id": "ann-5-52",
+      "type": "punctuation",
+      "category": "标点误用",
+      "originalText": "白线，",
+      "suggestedText": "白线。",
+      "explanation": "一句说完用句号，别一逗到底",
+      "paragraphIndex": 1,
+      "charStart": 52,
+      "charEnd": 55,
+      "order": 6
+    },
+    {
+      "id": "ann-6-55",
+      "type": "grammar",
+      "category": "成分残缺",
+      "originalText": "一令下",
+      "suggestedText": "一声令下",
+      "explanation": "固定说法是『一声令下』，漏了『声』",
+      "paragraphIndex": 2,
+      "charStart": 55,
+      "charEnd": 58,
+      "order": 7
+    },
+    {
+      "id": "ann-7-79",
+      "type": "grammar",
+      "category": "重复啰嗦",
+      "originalText": "如同有胶水一样",
+      "suggestedText": "像胶水一样",
+      "explanation": "『如同』和『一样』重复，留一个",
+      "paragraphIndex": 2,
+      "charStart": 79,
+      "charEnd": 86,
+      "order": 8
+    },
+    {
+      "id": "ann-8-92",
+      "type": "highlight",
+      "category": "生动比喻",
+      "originalText": "像一棵棵挺拔的大树站立着",
+      "explanation": "把同学比作大树，稳而有力",
+      "paragraphIndex": 2,
+      "charStart": 92,
+      "charEnd": 104,
+      "order": 9
+    },
+    {
+      "id": "ann-9-107",
+      "type": "highlight",
+      "category": "拟人佳句",
+      "originalText": "调皮的红布绸子不听话",
+      "explanation": "『调皮』『不听话』写出紧张拉锯",
+      "paragraphIndex": 2,
+      "charStart": 107,
+      "charEnd": 117,
+      "order": 10
+    },
+    {
+      "id": "ann-10-200",
+      "type": "typo",
+      "category": "同音错字",
+      "originalText": "对量",
+      "suggestedText": "较量",
+      "explanation": "『对量』应是『较量』，比高低的意思",
+      "paragraphIndex": 2,
+      "charStart": 200,
+      "charEnd": 202,
+      "order": 11
+    },
+    {
+      "id": "ann-11-13",
+      "type": "grammar",
+      "category": "用词不当",
+      "originalText": "对法",
+      "suggestedText": "对策",
+      "explanation": "商量的是『对策』，不是『对法』",
+      "paragraphIndex": 3,
+      "charStart": 13,
+      "charEnd": 15,
+      "order": 12
+    },
+    {
+      "id": "ann-12-38",
+      "type": "typo",
+      "category": "同音错字",
+      "originalText": "变的",
+      "suggestedText": "变得",
+      "explanation": "『变得』后面跟形容词，要用『得』",
+      "paragraphIndex": 3,
+      "charStart": 38,
+      "charEnd": 40,
+      "order": 13
+    },
+    {
+      "id": "ann-13-87",
+      "type": "highlight",
+      "category": "成语妙用",
+      "originalText": "九牛二虎之力",
+      "explanation": "成语写出小陈拼尽全力的样子",
+      "paragraphIndex": 3,
+      "charStart": 87,
+      "charEnd": 93,
+      "order": 14
+    },
+    {
+      "id": "ann-14-106",
+      "type": "punctuation",
+      "category": "标点误用",
+      "originalText": "纹丝不动，",
+      "suggestedText": "纹丝不动。",
+      "explanation": "一处动作说完，用句号断开更清楚",
+      "paragraphIndex": 3,
+      "charStart": 106,
+      "charEnd": 111,
+      "order": 15
+    },
+    {
+      "id": "ann-15-130",
+      "type": "grammar",
+      "category": "用词不当",
+      "originalText": "来回转",
+      "suggestedText": "来回移动",
+      "explanation": "绸子在绳上左右移动，不是『转』",
+      "paragraphIndex": 3,
+      "charStart": 130,
+      "charEnd": 133,
+      "order": 16
+    },
+    {
+      "id": "ann-16-136",
+      "type": "grammar",
+      "category": "成分残缺",
+      "originalText": "来到了白热化",
+      "suggestedText": "进入了白热化阶段",
+      "explanation": "白热化是阶段，说『进入……阶段』",
+      "paragraphIndex": 3,
+      "charStart": 136,
+      "charEnd": 142,
+      "order": 17
+    },
+    {
+      "id": "ann-17-249",
+      "type": "grammar",
+      "category": "重复啰嗦",
+      "originalText": "成功胜利了",
+      "suggestedText": "胜利了",
+      "explanation": "『成功』与『胜利』意思重复，删一个",
+      "paragraphIndex": 3,
+      "charStart": 249,
+      "charEnd": 254,
+      "order": 18
+    },
+    {
+      "id": "ann-18-34",
+      "type": "grammar",
+      "category": "成分残缺",
+      "originalText": "听到胜利后",
+      "suggestedText": "听到胜利的消息后",
+      "explanation": "『听到』后面要跟听到的内容",
+      "paragraphIndex": 4,
+      "charStart": 34,
+      "charEnd": 39,
+      "order": 19
+    },
+    {
+      "id": "ann-19-52",
+      "type": "highlight",
+      "category": "动作描写",
+      "originalText": "一蹦三尺高",
+      "explanation": "夸张的动作写出胜利的狂喜",
+      "paragraphIndex": 4,
+      "charStart": 52,
+      "charEnd": 57,
+      "order": 20
+    }
+  ],
+  "dimensionScores": {
+    "theme": {
+      "name": "主题立意",
+      "score": 19,
+      "maxScore": 20,
+      "comment": "主题明确，团结点题"
+    },
+    "language": {
+      "name": "语言表达",
+      "score": 21,
+      "maxScore": 25,
+      "comment": "比喻生动，用词待准"
+    },
+    "structure": {
+      "name": "篇章结构",
+      "score": 17,
+      "maxScore": 20,
+      "comment": "顺序清楚，开头稍啰嗦"
+    },
+    "mechanics": {
+      "name": "错字标点",
+      "score": 13,
+      "maxScore": 15,
+      "comment": "错字标点偶有疏漏"
+    },
+    "emotion": {
+      "name": "情感真实",
+      "score": 18,
+      "maxScore": 20,
+      "comment": "真情实感，读来振奋"
+    }
+  },
+  "overallScore": 88,
+  "letterGrade": "良好 (B)",
+  "title": "一次难忘的拔河比赛",
+  "suggestedTitles": [
+    "精彩的拔河比赛",
+    "红绸子前的较量",
+    "团结的力量"
+  ],
+  "gradeLevel": "六年级",
+  "studentName": "林小羽",
+  "pageCount": 4,
+  "wordCount": 648,
+  "summaryComment": "全文按比赛进程展开，比喻拟人用得巧，把红布绸子的调皮和队员的拼劲写活了，结尾点明团结的力量，情真意切。若把『鼓励活力』『对量』改准确，再注意『的、得』用法，会更出色。加油！",
+  "strengths": [
+    "用比喻、拟人写麻绳红绸，画面鲜活生动。",
+    "按初赛到决赛的顺序写，重点写总决赛，详略分明。",
+    "结尾『团结才是力量』点明中心，真实感人。"
+  ]
+}
