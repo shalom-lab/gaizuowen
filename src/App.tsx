@@ -257,20 +257,6 @@ export default function App() {
             </button>
           </div>
         </div>
-
-        {/* Own sticky row so it never squeezes the icons on a narrow phone. */}
-        {shownResult && (
-          <div className="border-t border-rose-100 bg-rose-50/90">
-            <div className="max-w-2xl mx-auto px-4 py-2">
-              <button
-                onClick={exitResult}
-                className="w-full py-2.5 rounded-xl bg-white text-rose-700 text-sm font-bold border border-rose-200 active:scale-[0.99] transition-transform"
-              >
-                继续批改
-              </button>
-            </div>
-          </div>
-        )}
       </header>
 
       <ToastStack items={toasts} onOpen={openJob} onDismiss={dismissToast} />
