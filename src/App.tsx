@@ -16,6 +16,7 @@ import {
 import { loadSecrets, Secrets } from './utils/byok';
 import { useGradingQueue } from './hooks/useGradingQueue';
 import { useWakeLock } from './hooks/useWakeLock';
+import { historyBadge } from './utils/historyBadge';
 import { BookOpen, History, Settings, KeyRound } from 'lucide-react';
 
 export default function App() {
@@ -142,6 +143,9 @@ export default function App() {
     [queue.jobs]
   );
 
+  /** Top-right badge: one meaning only (see utils/historyBadge.ts). */
+  const badge = historyBadge(queue.unreadCount);
+
   // The export screen replaces the whole app so the printout contains only the
   // document (plus its own control bar, which is marked .no-print).
   if (exporting && exporting.length > 0) {
@@ -176,21 +180,16 @@ export default function App() {
             <button
               onClick={() => setHistoryOpen(true)}
               className="relative p-2 rounded-lg text-slate-500 active:bg-slate-100"
-              aria-label="批改记录"
+              aria-label={badge.show ? `批改记录，有 ${queue.unreadCount} 篇新的` : '批改记录'}
             >
               <History className="w-5 h-5" />
-              {/* unread finished essays take priority over the total count */}
-              {(queue.unreadCount > 0 || history.length > 0) && (
-                <span
-                  className={`absolute top-1 right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-white text-[9px] font-bold flex items-center justify-center ${
-                    queue.unreadCount > 0 ? 'bg-emerald-500' : 'bg-rose-600'
-                  }`}
-                >
-                  {queue.unreadCount > 0
-                    ? queue.unreadCount
-                    : history.length > 99
-                      ? '99'
-                      : history.length}
+              {/*
+                One meaning only: how many results are waiting to be opened.
+                Rose = needs your attention (never green — green means "success").
+              */}
+              {badge.show && (
+                <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-0.5 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center">
+                  {badge.label}
                 </span>
               )}
             </button>

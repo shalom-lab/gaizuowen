@@ -228,7 +228,8 @@ export const HistorySheet: React.FC<HistorySheetProps> = ({
                           {r.letterGrade}
                         </span>
                         {isNew && (
-                          <span className="px-1.5 rounded bg-emerald-500 text-white font-bold">新</span>
+                          // Same tone as the top-right badge: 待你查看.
+                          <span className="px-1.5 rounded bg-rose-600 text-white font-bold">新</span>
                         )}
                       </div>
 
