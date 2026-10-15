@@ -3,6 +3,7 @@ import { CaptureScreen } from './components/CaptureScreen';
 import { ResultScreen } from './components/ResultScreen';
 import { HistorySheet } from './components/HistorySheet';
 import { SettingsSheet } from './components/SettingsSheet';
+import { HelpSheet } from './components/HelpSheet';
 import { QueueBar } from './components/QueueBar';
 import { ToastStack, ToastItem } from './components/ToastStack';
 import { ExportPreview } from './components/ExportPreview';
@@ -23,6 +24,7 @@ export default function App() {
   const [history, setHistory] = useState<StoredEssayRecord[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   /** An essay opened from history, shown without touching the queue. */
@@ -239,6 +241,12 @@ export default function App() {
                 >
                   去设置
                 </button>
+                <button
+                  onClick={() => setHelpOpen(true)}
+                  className="mt-2.5 ml-3 text-xs font-semibold text-amber-800 underline"
+                >
+                  不知道去哪拿 Key？
+                </button>
               </div>
             </div>
           </div>
@@ -291,7 +299,13 @@ export default function App() {
           setSecrets(next);
           if (next.apiKey) setNotice(null);
         }}
+        onOpenHelp={() => {
+          setSettingsOpen(false);
+          setHelpOpen(true);
+        }}
       />
+
+      <HelpSheet isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }

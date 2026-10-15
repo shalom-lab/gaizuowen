@@ -16,6 +16,8 @@ interface SettingsSheetProps {
   onClose: () => void;
   secrets: Secrets;
   onSecretsChanged: (next: Secrets) => void;
+  /** Opens the in-app usage guide. */
+  onOpenHelp?: () => void;
 }
 
 /**
@@ -28,6 +30,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
   onClose,
   secrets,
   onSecretsChanged,
+  onOpenHelp,
 }) => {
   const [keyInput, setKeyInput] = useState('');
   const [baseInput, setBaseInput] = useState(secrets.baseUrl === DEFAULT_BASE_URL ? '' : secrets.baseUrl);
@@ -161,6 +164,16 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
                 <ExternalLink className="w-3 h-3" />
               </a>
             </p>
+
+            {/* The one thing that blocks her completely, answerable in place. */}
+            {onOpenHelp && (
+              <button
+                onClick={onOpenHelp}
+                className="mt-2 text-[11px] font-semibold text-rose-600 underline"
+              >
+                不知道去哪拿 Key？查看使用帮助
+              </button>
+            )}
 
             <div className="mt-2.5 flex items-center gap-2">
               <button
