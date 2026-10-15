@@ -67,7 +67,7 @@ export const ExportPreview: React.FC<ExportPreviewProps> = ({ records, onClose }
   return (
     <div className="min-h-screen bg-slate-200">
       <div className="no-print sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+        <div className="app-shell flex items-center justify-between gap-3">
           <button
             onClick={onClose}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 active:bg-slate-100"
@@ -85,12 +85,12 @@ export const ExportPreview: React.FC<ExportPreviewProps> = ({ records, onClose }
             {saving ? '保存中…' : '保存文件'}
           </button>
         </div>
-        <p className="max-w-2xl mx-auto mt-2 text-[11px] text-slate-400 leading-relaxed">
+        <p className="app-shell mt-2 text-[11px] text-slate-400 leading-relaxed">
           点「保存文件」存到手机。若当前在微信里点了没反应，可换 Chrome 打开后再保存。
         </p>
         {status && (
           <div
-            className={`max-w-2xl mx-auto mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed p-2.5 rounded-lg ${
+            className={`app-shell mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed p-2.5 rounded-lg ${
               status.ok
                 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                 : 'bg-red-50 text-red-700 border border-red-200'
@@ -106,7 +106,7 @@ export const ExportPreview: React.FC<ExportPreviewProps> = ({ records, onClose }
         )}
       </div>
 
-      <div className="max-w-2xl mx-auto p-4 print:p-0 print:max-w-none">
+      <div className="app-shell p-4 print:p-0 print:max-w-none">
         {records.map((rec, idx) => (
           <EssaySheet key={rec.id} record={rec} index={idx} total={records.length} />
         ))}

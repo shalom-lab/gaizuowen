@@ -19,6 +19,32 @@
 }
 
 @layer utilities {
+  /* Phone column by default; a bit wider on desktop so essay text breathes. */
+  .app-shell {
+    @apply w-full max-w-2xl mx-auto lg:max-w-4xl;
+  }
+
+  /*
+   * Bottom sheets on phone → centered dialogs on desktop.
+   * Apply to the overlay + panel pair in Settings / Help / History.
+   */
+  .sheet-overlay {
+    @apply fixed inset-0 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-6;
+  }
+
+  .sheet-panel {
+    @apply relative bg-white rounded-t-3xl max-h-[90vh] flex flex-col w-full
+      md:rounded-2xl md:max-h-[min(85vh,720px)] md:max-w-lg md:shadow-2xl md:border md:border-slate-200;
+  }
+
+  .sheet-panel-wide {
+    @apply md:max-w-2xl;
+  }
+
+  .sheet-handle {
+    @apply pt-2.5 flex justify-center shrink-0 md:hidden;
+  }
+
   /*
    * Teacher's red-pen convention, matched on screen so what she sees is what
    * she draws on the paper:

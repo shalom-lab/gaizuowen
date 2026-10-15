@@ -151,10 +151,10 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
       )}
 
       {pages.length === 0 ? (
-        <div className="px-4 pt-8">
-          <div className="text-center mb-8">
-            <h1 className="text-xl font-bold text-slate-900">上传作文,生成批注</h1>
-            <p className="mt-2 text-sm text-slate-500 leading-relaxed">
+        <div className="px-4 sm:px-6 pt-8 lg:pt-14">
+          <div className="text-center mb-8 lg:mb-10">
+            <h1 className="text-xl lg:text-2xl font-bold text-slate-900">上传作文,生成批注</h1>
+            <p className="mt-2 text-sm text-slate-500 leading-relaxed max-w-lg mx-auto">
               拍下学生作文,后台自动识别并给出可直接抄写的批注
             </p>
             {queueCount > 0 && (
@@ -164,10 +164,10 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             )}
           </div>
 
-          <div className="space-y-3 max-w-md mx-auto">
+          <div className="space-y-3 max-w-md mx-auto md:max-w-2xl md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
             <button
               onClick={() => cameraRef.current?.click()}
-              className="w-full flex items-center gap-4 p-5 rounded-2xl bg-rose-600 text-white shadow-lg shadow-rose-200 active:scale-[0.98] transition-transform"
+              className="w-full flex items-center gap-4 p-5 lg:p-6 rounded-2xl bg-rose-600 text-white shadow-lg shadow-rose-200 active:scale-[0.98] transition-transform"
             >
               <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                 <Camera className="w-6 h-6" />
@@ -180,7 +180,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
 
             <button
               onClick={() => libraryRef.current?.click()}
-              className="w-full flex items-center gap-4 p-5 rounded-2xl bg-white border border-slate-200 text-slate-800 active:scale-[0.98] transition-transform"
+              className="w-full flex items-center gap-4 p-5 lg:p-6 rounded-2xl bg-white border border-slate-200 text-slate-800 active:scale-[0.98] transition-transform"
             >
               <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
                 <ImageIcon className="w-6 h-6 text-slate-600" />
@@ -197,16 +197,16 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
           </p>
         </div>
       ) : (
-        <div className="px-4 pt-4">
+        <div className="px-4 sm:px-6 pt-4 lg:pt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_200px] lg:gap-5 lg:items-start">
           <div
-            className="relative rounded-2xl overflow-hidden bg-slate-900 touch-none select-none"
+            className="relative rounded-2xl overflow-hidden bg-slate-900 touch-none select-none lg:min-h-[52vh]"
             {...previewSwipe}
           >
             {active && (
               <img
                 src={active.dataUrl}
                 alt={`第 ${activeIndex + 1} 页`}
-                className="w-full max-h-[46vh] object-contain pointer-events-none"
+                className="w-full max-h-[46vh] lg:max-h-[62vh] object-contain pointer-events-none"
                 draggable={false}
               />
             )}
@@ -227,12 +227,12 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             )}
           </div>
 
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="mt-3 lg:mt-0 flex gap-2 overflow-x-auto lg:overflow-y-auto lg:overflow-x-hidden pb-1 -mx-1 px-1 lg:mx-0 lg:px-0 lg:flex-col lg:max-h-[62vh]">
             {pages.map((p, i) => (
               <div
                 key={p.id}
                 onClick={() => setActiveIndex(i)}
-                className={`relative shrink-0 w-20 h-24 rounded-xl overflow-hidden border-2 transition-all ${
+                className={`relative shrink-0 w-20 h-24 lg:w-full lg:h-28 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
                   i === activeIndex ? 'border-rose-500 ring-2 ring-rose-200' : 'border-slate-200'
                 }`}
               >
@@ -255,13 +255,14 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
 
             <button
               onClick={() => cameraRef.current?.click()}
-              className="shrink-0 w-20 h-24 rounded-xl border-2 border-dashed border-rose-300 bg-rose-50/60 flex flex-col items-center justify-center gap-1 text-rose-600"
+              className="shrink-0 w-20 h-24 lg:w-full lg:h-20 rounded-xl border-2 border-dashed border-rose-300 bg-rose-50/60 flex flex-col items-center justify-center gap-1 text-rose-600"
             >
               <Plus className="w-5 h-5" />
               <span className="text-[10px] font-bold">继续拍</span>
             </button>
           </div>
 
+          <div className="lg:col-span-2">
           {pages.length > 1 && (
             <div className="mt-2 flex items-center justify-between text-xs text-slate-500 px-1">
               <span className="flex items-center gap-1">
@@ -346,12 +347,13 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               </div>
             )}
           </div>
+          </div>
         </div>
       )}
 
       {pages.length > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="max-w-2xl mx-auto">
+        <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 px-4 sm:px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="app-shell">
             <button
               onClick={submit}
               disabled={!hasKey}

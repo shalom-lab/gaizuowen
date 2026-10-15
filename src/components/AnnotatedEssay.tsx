@@ -112,7 +112,7 @@ export const AnnotatedEssay: React.FC<AnnotatedEssayProps> = ({ paragraphs, anno
 
           return (
             <div key={p.paragraphIndex ?? pIdx}>
-              <p className="text-[16px] font-serif text-slate-800 leading-[2.2] text-justify">
+              <p className="text-[16px] lg:text-[17px] font-serif text-slate-800 leading-[2.2] text-justify">
                 {nodes.length ? nodes : p.text}
               </p>
 

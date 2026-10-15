@@ -66,11 +66,11 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   };
 
   return (
-    <div className="px-4 pt-4 pb-28">
+    <div className="px-4 sm:px-6 pt-4 lg:pt-6 pb-28">
       {/* ---- Title + score: stack cleanly on a narrow phone ---- */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-bold text-slate-900 leading-snug break-words">
+          <h1 className="text-lg lg:text-xl font-bold text-slate-900 leading-snug break-words">
             《{result.title}》
           </h1>
           <p className="text-xs text-slate-500 mt-1.5 leading-relaxed flex flex-wrap gap-x-1.5 gap-y-0.5">
@@ -150,8 +150,8 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
       )}
 
       {/* ---- Sticky action ---- */}
-      <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="max-w-2xl mx-auto">
+      <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 px-4 sm:px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="app-shell">
           <button
             onClick={onNewEssay}
             className="w-full py-3.5 rounded-2xl bg-rose-600 text-white font-bold text-base shadow-lg shadow-rose-200 active:scale-[0.98] transition-transform"

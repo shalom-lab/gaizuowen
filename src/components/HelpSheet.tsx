@@ -34,14 +34,14 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
+    <div className="sheet-overlay" onClick={onClose}>
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
 
       <div
-        className="relative bg-white rounded-t-3xl h-[min(92vh,720px)] flex flex-col"
+        className="sheet-panel sheet-panel-wide h-[min(92vh,720px)] md:h-[min(85vh,720px)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="pt-2.5 flex justify-center shrink-0">
+        <div className="sheet-handle">
           <div className="w-10 h-1 rounded-full bg-slate-200" />
         </div>
 

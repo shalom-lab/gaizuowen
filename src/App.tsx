@@ -213,7 +213,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="app-shell px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center shrink-0">
               <BookOpen className="w-4 h-4 text-white" />
@@ -266,7 +266,7 @@ export default function App() {
 
       <ToastStack items={toasts} onOpen={openJob} onDismiss={dismissToast} />
 
-      <main className="flex-1 w-full max-w-2xl mx-auto">
+      <main className="flex-1 app-shell">
         <WeChatBanner />
         <InstallBanner />
 

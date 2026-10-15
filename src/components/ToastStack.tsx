@@ -26,8 +26,8 @@ export const ToastStack: React.FC<ToastStackProps> = ({ items, onOpen, onDismiss
   if (items.length === 0) return null;
 
   return (
-    <div className="fixed top-16 inset-x-0 z-40 px-4 pointer-events-none">
-      <div className="max-w-2xl mx-auto space-y-2">
+    <div className="fixed top-16 inset-x-0 z-40 px-4 sm:px-6 pointer-events-none">
+      <div className="app-shell space-y-2">
         {items.slice(0, 2).map((t) => (
           <Toast key={t.id} item={t} onOpen={onOpen} onDismiss={onDismiss} />
         ))}
