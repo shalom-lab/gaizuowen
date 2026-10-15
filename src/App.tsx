@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CaptureScreen } from './components/CaptureScreen';
 import { ResultScreen } from './components/ResultScreen';
 import { HistorySheet } from './components/HistorySheet';
 import { SettingsSheet } from './components/SettingsSheet';
 import { QueueBar } from './components/QueueBar';
 import { ToastStack, ToastItem } from './components/ToastStack';
+import { ExportPreview } from './components/ExportPreview';
 import { GradingSubmission } from './types';
 import {
   getAllGradedEssaysFromIndexedDB,
@@ -27,6 +28,8 @@ export default function App() {
   const [archivedView, setArchivedView] = useState<StoredEssayRecord | null>(null);
   /** True while the teacher is mid-way through collecting an essay's pages. */
   const [collecting, setCollecting] = useState(false);
+  /** Records being prepared for print/PDF export. */
+  const [exporting, setExporting] = useState<StoredEssayRecord[] | null>(null);
 
   const [secrets, setSecrets] = useState<Secrets>(() => loadSecrets());
   const hasKey = Boolean(secrets.apiKey);
@@ -132,6 +135,18 @@ export default function App() {
   // While the teacher is reading comments and writing them on paper, the screen
   // must not dim on her. Also held while she is lining up the next photo.
   useWakeLock(Boolean(shownResult) || collecting);
+
+  /** Essay ids whose result has not been opened yet, for the 新 chip. */
+  const unreadIds = useMemo(
+    () => new Set(queue.jobs.filter((j) => j.status === 'done' && !j.read).map((j) => `essay-${j.id}`)),
+    [queue.jobs]
+  );
+
+  // The export screen replaces the whole app so the printout contains only the
+  // document (plus its own control bar, which is marked .no-print).
+  if (exporting && exporting.length > 0) {
+    return <ExportPreview records={exporting} onClose={() => setExporting(null)} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
@@ -246,6 +261,7 @@ export default function App() {
         isOpen={historyOpen}
         onClose={() => setHistoryOpen(false)}
         records={history}
+        unreadIds={unreadIds}
         onSelect={(rec) => {
           setHistoryOpen(false);
           setArchivedView(rec);
@@ -254,9 +270,17 @@ export default function App() {
           await deleteGradedEssayFromIndexedDB(id);
           refreshHistory();
         }}
+        onDeleteMany={async (ids) => {
+          for (const id of ids) await deleteGradedEssayFromIndexedDB(id);
+          refreshHistory();
+        }}
         onClearAll={async () => {
           await clearAllEssaysFromIndexedDB();
           setHistory([]);
+        }}
+        onExport={(records) => {
+          setHistoryOpen(false);
+          setExporting(records);
         }}
       />
 

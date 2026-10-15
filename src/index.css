@@ -46,3 +46,55 @@
     text-underline-offset: 4px;
   }
 }
+
+/*
+ * Printing the annotation document.
+ *
+ * The export screen renders only the document plus a small control bar, so
+ * hiding `.no-print` is enough to produce a clean handout — no rasterising, the
+ * text stays selectable vector text with proper Chinese glyphs.
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  body.printing-document {
+    /* Neutralise the app shell padding/background while printing. */
+    background: #ffffff !important;
+  }
+
+  section {
+    box-shadow: none !important;
+  }
+
+  /*
+   * A class's worth of annotations will not fit on one page, so pagination has
+   * to be deliberate: keep the table header on every page, never split a single
+   * row across a page boundary, and avoid orphaned headings.
+   */
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  h1,
+  h2 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+}
