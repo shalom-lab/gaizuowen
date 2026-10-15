@@ -21,7 +21,7 @@ interface HelpSheetProps {
 }
 
 /**
- * 使用介绍 — same facts as 使用说明.md, shaped as a revisitable intro page.
+ * 使用介绍 — same facts as README.md, shaped as a revisitable intro page.
  *
  * Not a one-shot onboarding: she can reopen it anytime from the header.
  * A near-full sheet (not a route) stays consistent with 设置 / 批改记录 and

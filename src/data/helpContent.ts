@@ -2,7 +2,7 @@
  * In-app「使用介绍」content.
  *
  * Kept as structured data rather than JSX so the same facts can be rendered by
- * the intro sheet and checked against 使用说明.md by
+ * the intro sheet and checked against README.md by
  * `scripts/test-doc-consistency.mjs` — otherwise the app's intro and the
  * repository's guide would drift apart over time.
  */
