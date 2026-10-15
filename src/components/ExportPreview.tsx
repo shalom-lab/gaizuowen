@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
-import { Printer, ArrowLeft } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Download, ArrowLeft, Loader2, Check, AlertCircle } from 'lucide-react';
 import { StoredEssayRecord } from '../utils/indexedDb';
 import { AnnotationItem, AnnotationType } from '../types';
 import { TYPE_META } from '../utils/annotationMeta';
 import { scoreStyle } from '../utils/scoreStyle';
+import { saveExportFile } from '../utils/exportDocument';
 
 interface ExportPreviewProps {
   records: StoredEssayRecord[];
@@ -27,21 +28,44 @@ const EXPORT_INK: Record<AnnotationType, { text: string; rule: string; wavy: boo
 };
 
 /**
- * Printable annotation document for one or more essays.
+ * Annotation document preview + save-as-file.
  *
- * Print-to-PDF rather than a JS PDF library: the text stays real vector text
- * with correct Chinese glyphs (no 5-10 MB embedded CJK font, no rasterising),
- * and the browser's "save as PDF" does the rest. One essay per page.
+ * Mobile browsers often ignore or bury window.print(), so the primary action
+ * writes a real .html file via the share sheet / download — no print dialog.
+ * The on-screen sheets remain for a quick look before saving.
  */
 export const ExportPreview: React.FC<ExportPreviewProps> = ({ records, onClose }) => {
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+
   useEffect(() => {
     document.body.classList.add('printing-document');
     return () => document.body.classList.remove('printing-document');
   }, []);
 
+  const handleSave = async () => {
+    setSaving(true);
+    setStatus(null);
+    try {
+      const result = await saveExportFile(records);
+      if (result === 'shared') {
+        setStatus({ ok: true, msg: '已打开系统分享，可选「存储到文件」保存到手机' });
+      } else if (result === 'downloaded') {
+        setStatus({ ok: true, msg: '已开始下载批注单文件' });
+      } else if (result === 'cancelled') {
+        setStatus(null);
+      } else {
+        setStatus({ ok: false, msg: '保存失败，请再试一次' });
+      }
+    } catch {
+      setStatus({ ok: false, msg: '保存失败，请再试一次' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-200">
-      {/* Controls — excluded from the printout via .no-print */}
       <div className="no-print sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <button
@@ -51,19 +75,35 @@ export const ExportPreview: React.FC<ExportPreviewProps> = ({ records, onClose }
             <ArrowLeft className="w-4 h-4" />
             返回
           </button>
-          <div className="text-xs text-slate-500 text-center min-w-0">共 {records.length} 篇 · 每篇一页</div>
+          <div className="text-xs text-slate-500 text-center min-w-0">共 {records.length} 篇</div>
           <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-bold shadow-sm active:scale-95"
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-bold shadow-sm active:scale-95 disabled:opacity-60"
           >
-            <Printer className="w-4 h-4" />
-            打印 / 存为 PDF
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {saving ? '保存中…' : '保存文件'}
           </button>
         </div>
-        <p className="max-w-2xl mx-auto mt-2 text-[11px] text-slate-400 leading-relaxed no-print">
-          在弹出的打印窗口里,把「目标 / 打印机」选为「另存为 PDF」即可。
-          若想保留颜色,请在打印选项里勾选「背景图形 / Background graphics」。
+        <p className="max-w-2xl mx-auto mt-2 text-[11px] text-slate-400 leading-relaxed">
+          点「保存文件」存到手机。若当前在微信里点了没反应，可换 Chrome 打开后再保存。
         </p>
+        {status && (
+          <div
+            className={`max-w-2xl mx-auto mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed p-2.5 rounded-lg ${
+              status.ok
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}
+          >
+            {status.ok ? (
+              <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            )}
+            {status.msg}
+          </div>
+        )}
       </div>
 
       <div className="max-w-2xl mx-auto p-4 print:p-0 print:max-w-none">

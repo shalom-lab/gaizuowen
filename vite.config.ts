@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
@@ -73,6 +74,37 @@ export default defineConfig(({ mode }) => {
         isDev,
         key: env.DEEPSEEK_API_KEY || '',
         base: env.DEEPSEEK_BASE_URL || '',
+      }),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+        manifest: {
+          name: '作文批改助手',
+          short_name: '作文批改',
+          description: '拍照上传小学生作文，自动给出可抄写作文本的批注与总评',
+          lang: 'zh-CN',
+          theme_color: '#e11d48',
+          background_color: '#f8fafc',
+          display: 'standalone',
+          orientation: 'portrait-primary',
+          start_url: './',
+          scope: './',
+          icons: [
+            { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
+            { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
+            {
+              src: 'pwa-512-maskable.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+          ],
+        },
+        workbox: {
+          // Cache the app shell so "Add to Home Screen" still opens offline.
+          // Grading itself needs network + the teacher's DeepSeek key.
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
+        },
       }),
     ],
     build: {

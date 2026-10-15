@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Star, Copy, Check, Image as ImageIcon, ClipboardList } from 'lucide-react';
-import { EssayGradingResult, AnnotationItem } from '../types';
+import { Star, Copy, Check, Image as ImageIcon, FileDown } from 'lucide-react';
+import { EssayGradingResult } from '../types';
 import { TYPE_META } from '../utils/annotationMeta';
 import { scoreStyle } from '../utils/scoreStyle';
 import { AnnotatedEssay } from './AnnotatedEssay';
@@ -10,6 +10,8 @@ interface ResultScreenProps {
   result: EssayGradingResult;
   imageUrls: string[];
   onNewEssay: () => void;
+  /** Export this essay as a printable annotation sheet. */
+  onExport: () => void;
 }
 
 /**
@@ -17,11 +19,15 @@ interface ResultScreenProps {
  * shown in a bracket right beside the mistake — plus the single 80-100 char
  * overall comment. Nothing else, so it reads straight down the page.
  */
-export const ResultScreen: React.FC<ResultScreenProps> = ({ result, imageUrls, onNewEssay }) => {
+export const ResultScreen: React.FC<ResultScreenProps> = ({
+  result,
+  imageUrls,
+  onNewEssay,
+  onExport,
+}) => {
   const [photosOpen, setPhotosOpen] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [copied, setCopied] = useState(false);
-  const [copiedAll, setCopiedAll] = useState(false);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -59,48 +65,26 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ result, imageUrls, o
     }
   };
 
-  /** Plain numbered list — for pasting into a class group or a grading record. */
-  const buildChecklist = () => {
-    const lines: string[] = [`《${result.title}》`, ''];
-    const byParagraph = new Map<number, AnnotationItem[]>();
-    for (const a of result.annotations) {
-      const k = a.paragraphIndex ?? 0;
-      if (!byParagraph.has(k)) byParagraph.set(k, []);
-      byParagraph.get(k)!.push(a);
-    }
-    for (const [pIdx, list] of [...byParagraph.entries()].sort((x, y) => x[0] - y[0])) {
-      lines.push(`第 ${pIdx + 1} 段`);
-      for (const a of list.sort((x, y) => (x.order ?? 0) - (y.order ?? 0))) {
-        const fix = a.suggestedText ? `${a.originalText} → ${a.suggestedText}` : `${a.originalText}（${a.category}）`;
-        lines.push(`${a.order}. ${fix}  ${a.explanation}`);
-      }
-      lines.push('');
-    }
-    lines.push('总评', result.summaryComment);
-    return lines.join('\n').trim();
-  };
-
-  const copyAll = async () => {
-    if (await copyText(buildChecklist())) {
-      setCopiedAll(true);
-      setTimeout(() => setCopiedAll(false), 1800);
-    }
-  };
-
   return (
     <div className="px-4 pt-4 pb-28">
-      {/* ---- Title bar ---- */}
+      {/* ---- Title + score: stack cleanly on a narrow phone ---- */}
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-bold text-slate-900 leading-snug">《{result.title}》</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            {result.gradeLevel} · {result.studentName || '同学'} · {result.wordCount} 字 ·{' '}
-            {result.annotations.length} 处批注
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold text-slate-900 leading-snug break-words">
+            《{result.title}》
+          </h1>
+          <p className="text-xs text-slate-500 mt-1.5 leading-relaxed flex flex-wrap gap-x-1.5 gap-y-0.5">
+            <span>{result.gradeLevel}</span>
+            <span className="text-slate-300">·</span>
+            <span>{result.studentName || '同学'}</span>
+            <span className="text-slate-300">·</span>
+            <span>{result.wordCount} 字</span>
+            <span className="text-slate-300">·</span>
+            <span>{result.annotations.length} 处批注</span>
           </p>
         </div>
-        {/* The score belongs here too — she writes it on the paper. */}
         <div
-          className={`shrink-0 rounded-xl border px-2.5 py-1.5 text-center ${score.bg} ${score.border}`}
+          className={`shrink-0 rounded-xl border px-2.5 py-1.5 text-center min-w-[3.25rem] ${score.bg} ${score.border}`}
         >
           <div className={`text-xl font-black leading-none tabular-nums ${score.text}`}>
             {result.overallScore}
@@ -109,14 +93,12 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ result, imageUrls, o
         </div>
       </div>
 
-      {/* ---- Legend + copy checklist ---- */}
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 px-1">
+      {/* ---- Counts on their own wrapping row; export below on small screens ---- */}
+      <div className="mb-3 space-y-2">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
           {(['typo', 'grammar', 'punctuation', 'highlight'] as const)
             .filter((t) => counts[t])
             .map((t) => (
-              // Render the label with the actual pen mark so the legend shows
-              // her what to draw: straight line = fix, wavy = praise.
               <span key={t} className="flex items-center gap-1 text-[11px] text-slate-500">
                 <span className={`${TYPE_META[t].textClass} px-1 rounded`}>{TYPE_META[t].label}</span>
                 <span className="tabular-nums">{counts[t]}</span>
@@ -124,11 +106,11 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ result, imageUrls, o
             ))}
         </div>
         <button
-          onClick={copyAll}
-          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-[11px] font-semibold text-slate-600 active:scale-95"
+          onClick={onExport}
+          className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 active:scale-[0.99]"
         >
-          {copiedAll ? <Check className="w-3 h-3 text-emerald-600" /> : <ClipboardList className="w-3 h-3" />}
-          {copiedAll ? '已复制' : '复制清单'}
+          <FileDown className="w-3.5 h-3.5" />
+          导出
         </button>
       </div>
 
@@ -137,21 +119,23 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ result, imageUrls, o
 
       {/* ---- The one long comment ---- */}
       <div className="mt-5 rounded-2xl bg-amber-50 border border-amber-200 p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5">
-            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Star className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />
             <span className="text-sm font-bold text-amber-900">总评</span>
             <span className="text-[11px] text-amber-700/80">{result.summaryComment.length} 字</span>
           </div>
           <button
             onClick={copyComment}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-900 text-xs font-medium active:scale-95"
+            className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-900 text-xs font-medium active:scale-95"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
             {copied ? '已复制' : '复制'}
           </button>
         </div>
-        <p className="text-[15px] text-slate-800 leading-loose font-serif">{result.summaryComment}</p>
+        <p className="text-[15px] text-slate-800 leading-loose font-serif break-words">
+          {result.summaryComment}
+        </p>
       </div>
 
       {/* ---- Original photos ---- */}

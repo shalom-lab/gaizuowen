@@ -19,6 +19,8 @@ import { useGradingQueue } from './hooks/useGradingQueue';
 import { useWakeLock } from './hooks/useWakeLock';
 import { historyBadge } from './utils/historyBadge';
 import { BookOpen, History, Settings, KeyRound, CircleHelp } from 'lucide-react';
+import { WeChatBanner } from './components/WeChatBanner';
+import { InstallBanner } from './components/InstallBanner';
 
 /** Once she's dismissed the first-visit intro, don't auto-open it again. */
 const INTRO_SEEN_KEY = 'deepseek-zuowen-intro-seen';
@@ -160,6 +162,30 @@ export default function App() {
     queue.closeActiveJob();
   };
 
+  /** Export the essay currently on screen (same print sheet as 批改记录 → 导出). */
+  const exportCurrent = () => {
+    if (!shownResult) return;
+    if (archivedView) {
+      setExporting([archivedView]);
+      return;
+    }
+    const job = queue.activeJob;
+    setExporting([
+      {
+        id: job ? `essay-${job.id}` : `export-${Date.now()}`,
+        title: shownResult.title || '未命名作文',
+        studentName: shownResult.studentName || job?.submission.studentName || '同学',
+        gradeLevel: shownResult.gradeLevel || job?.submission.gradeLevel || '',
+        overallScore: shownResult.overallScore,
+        letterGrade: shownResult.letterGrade,
+        pageCount: shownImages.length || shownResult.pageCount || 1,
+        imageUrls: shownImages,
+        gradingResult: shownResult,
+        createdAt: job?.finishedAt ?? job?.createdAt ?? Date.now(),
+      },
+    ]);
+  };
+
   // While the teacher is reading comments and writing them on paper, the screen
   // must not dim on her. Also held while she is lining up the next photo.
   useWakeLock(Boolean(shownResult) || collecting);
@@ -195,15 +221,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            {shownResult && (
-              <button
-                onClick={exitResult}
-                className="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 active:scale-95"
-              >
-                继续批改
-              </button>
-            )}
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setHelpOpen(true)}
               className="p-2 rounded-lg text-slate-500 active:bg-slate-100"
@@ -239,11 +257,28 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        {/* Own sticky row so it never squeezes the icons on a narrow phone. */}
+        {shownResult && (
+          <div className="border-t border-rose-100 bg-rose-50/90">
+            <div className="max-w-2xl mx-auto px-4 py-2">
+              <button
+                onClick={exitResult}
+                className="w-full py-2.5 rounded-xl bg-white text-rose-700 text-sm font-bold border border-rose-200 active:scale-[0.99] transition-transform"
+              >
+                继续批改
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       <ToastStack items={toasts} onOpen={openJob} onDismiss={dismissToast} />
 
       <main className="flex-1 w-full max-w-2xl mx-auto">
+        <WeChatBanner />
+        <InstallBanner />
+
         <QueueBar
           jobs={queue.jobs}
           runningCount={queue.runningCount}
@@ -285,7 +320,12 @@ export default function App() {
         )}
 
         {shownResult ? (
-          <ResultScreen result={shownResult} imageUrls={shownImages} onNewEssay={exitResult} />
+          <ResultScreen
+            result={shownResult}
+            imageUrls={shownImages}
+            onNewEssay={exitResult}
+            onExport={exportCurrent}
+          />
         ) : (
           <CaptureScreen
             onSubmit={handleSubmit}

@@ -3,12 +3,11 @@ import {
   Camera,
   Image as ImageIcon,
   Plus,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   X,
   Sparkles,
-  GripVertical,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { GradingSubmission, UploadedImagePage } from '../types';
 import { compressImage } from '../utils/imageCompress';
@@ -27,12 +26,13 @@ interface CaptureScreenProps {
 
 const GRADES = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
 const LAST_META_KEY = 'essay-grader:last-meta';
-/** Hold this long before a thumbnail enters reorder mode (avoids fighting strip scroll). */
-const REORDER_HOLD_MS = 320;
 
 /**
  * Capture and collect. Multi-page essays are gathered page by page, then handed
  * to the background queue — the screen never blocks on grading.
+ *
+ * Page order is adjusted with ← → (move the focused page), not drag-and-drop —
+ * easier one-handed on a phone. Delete is the × on each thumbnail, with confirm.
  */
 export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   onSubmit,
@@ -44,9 +44,6 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [justQueued, setJustQueued] = useState<string | null>(null);
-  /** Thumbnail currently being reordered via long-press drag. */
-  const [dragFrom, setDragFrom] = useState<number | null>(null);
-  const [dragOver, setDragOver] = useState<number | null>(null);
 
   const [studentName, setStudentName] = useState('');
   const [gradeLevel, setGradeLevel] = useState('六年级');
@@ -55,9 +52,6 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
 
   const cameraRef = useRef<HTMLInputElement>(null);
   const libraryRef = useRef<HTMLInputElement>(null);
-  const thumbStripRef = useRef<HTMLDivElement>(null);
-  /** After a reorder gesture, ignore the synthetic click that would change activeIndex. */
-  const suppressThumbClick = useRef(false);
 
   useEffect(() => {
     try {
@@ -99,6 +93,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
   };
 
   const removePage = (index: number) => {
+    if (!confirm(`确定删除第 ${index + 1} 页？`)) return;
     setPages((prev) => {
       const next = prev.filter((_, i) => i !== index);
       setActiveIndex((cur) =>
@@ -108,16 +103,18 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     });
   };
 
-  const movePage = (from: number, to: number) => {
+  /** Shift the focused page one slot left/right; focus follows it. */
+  const moveActive = (delta: -1 | 1) => {
+    const to = activeIndex + delta;
+    if (to < 0 || to >= pages.length) return;
     setPages((prev) => {
-      if (to < 0 || to >= prev.length || from === to) return prev;
+      if (to < 0 || to >= prev.length) return prev;
       const next = [...prev];
-      const [item] = next.splice(from, 1);
+      const [item] = next.splice(activeIndex, 1);
       next.splice(to, 0, item);
       return next;
     });
-    // Caller only invokes this for a real move; focus the page that was dragged.
-    if (from !== to && to >= 0) setActiveIndex(to);
+    setActiveIndex(to);
   };
 
   const previewSwipe = useHorizontalSwipe({
@@ -125,94 +122,6 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
     onSwipeLeft: () => setActiveIndex((i) => Math.min(i + 1, pages.length - 1)),
     onSwipeRight: () => setActiveIndex((i) => Math.max(i - 1, 0)),
   });
-
-  /**
-   * Long-press then drag on a thumbnail to reorder.
-   * HTML5 draggable is unreliable on mobile; pointer events work on phone and desktop.
-   */
-  const onThumbPointerDown = (index: number, e: React.PointerEvent) => {
-    if (e.button !== 0 || pages.length < 2) return;
-    const pointerId = e.pointerId;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    let dragging = false;
-    let from = index;
-    let over = index;
-
-    const clearDragUi = () => {
-      setDragFrom(null);
-      setDragOver(null);
-    };
-
-    const hitIndex = (clientX: number): number => {
-      const strip = thumbStripRef.current;
-      if (!strip) return from;
-      const nodes = strip.querySelectorAll<HTMLElement>('[data-page-thumb]');
-      let best = from;
-      let bestDist = Infinity;
-      nodes.forEach((node, i) => {
-        const r = node.getBoundingClientRect();
-        const cx = r.left + r.width / 2;
-        const d = Math.abs(clientX - cx);
-        if (d < bestDist) {
-          bestDist = d;
-          best = i;
-        }
-      });
-      return best;
-    };
-
-    const timer = window.setTimeout(() => {
-      dragging = true;
-      suppressThumbClick.current = true;
-      setDragFrom(from);
-      setDragOver(from);
-      try {
-        navigator.vibrate?.(12);
-      } catch {
-        /* no haptic */
-      }
-    }, REORDER_HOLD_MS);
-
-    const onMove = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return;
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
-      if (!dragging) {
-        // Finger moved while waiting — treat as strip scroll, cancel hold.
-        if (Math.hypot(dx, dy) > 10) window.clearTimeout(timer);
-        return;
-      }
-      ev.preventDefault();
-      const nextOver = hitIndex(ev.clientX);
-      if (nextOver !== over) {
-        over = nextOver;
-        setDragOver(over);
-      }
-    };
-
-    const onUp = (ev: PointerEvent) => {
-      if (ev.pointerId !== pointerId) return;
-      window.clearTimeout(timer);
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-      if (dragging && over !== from) {
-        movePage(from, over);
-      }
-      clearDragUi();
-      // Drop the click suppression on the next tick so the click from this gesture is ignored.
-      if (suppressThumbClick.current) {
-        window.setTimeout(() => {
-          suppressThumbClick.current = false;
-        }, 0);
-      }
-    };
-
-    window.addEventListener('pointermove', onMove, { passive: false });
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
-  };
 
   const submit = () => {
     if (pages.length === 0 || !hasKey) return;
@@ -318,52 +227,31 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
             )}
           </div>
 
-          <div
-            ref={thumbStripRef}
-            className={`mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 ${
-              dragFrom !== null ? 'touch-none' : ''
-            }`}
-          >
-            {pages.map((p, i) => {
-              const isDragging = dragFrom === i;
-              const isDropTarget = dragOver === i && dragFrom !== null && dragFrom !== i;
-              return (
-                <div
-                  key={p.id}
-                  data-page-thumb
-                  onPointerDown={(e) => onThumbPointerDown(i, e)}
-                  onClick={() => {
-                    if (suppressThumbClick.current) return;
-                    setActiveIndex(i);
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {pages.map((p, i) => (
+              <div
+                key={p.id}
+                onClick={() => setActiveIndex(i)}
+                className={`relative shrink-0 w-20 h-24 rounded-xl overflow-hidden border-2 transition-all ${
+                  i === activeIndex ? 'border-rose-500 ring-2 ring-rose-200' : 'border-slate-200'
+                }`}
+              >
+                <img src={p.dataUrl} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+                <span className="absolute bottom-0 inset-x-0 bg-slate-900/75 text-white text-[10px] text-center font-bold py-0.5 pointer-events-none">
+                  {i + 1}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removePage(i);
                   }}
-                  className={`relative shrink-0 w-20 h-24 rounded-xl overflow-hidden border-2 transition-all ${
-                    isDragging
-                      ? 'border-rose-500 opacity-50 scale-95'
-                      : isDropTarget
-                        ? 'border-rose-400 ring-2 ring-rose-200'
-                        : i === activeIndex
-                          ? 'border-rose-500 ring-2 ring-rose-200'
-                          : 'border-slate-200'
-                  }`}
+                  className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-slate-900/80 text-white flex items-center justify-center"
+                  aria-label={`删除第 ${i + 1} 页`}
                 >
-                  <img src={p.dataUrl} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
-                  <span className="absolute bottom-0 inset-x-0 bg-slate-900/75 text-white text-[10px] text-center font-bold py-0.5 pointer-events-none">
-                    {i + 1}
-                  </span>
-                  <button
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removePage(i);
-                    }}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-slate-900/80 text-white flex items-center justify-center"
-                    aria-label="删除此页"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              );
-            })}
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
 
             <button
               onClick={() => cameraRef.current?.click()}
@@ -377,35 +265,25 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
           {pages.length > 1 && (
             <div className="mt-2 flex items-center justify-between text-xs text-slate-500 px-1">
               <span className="flex items-center gap-1">
-                <GripVertical className="w-3.5 h-3.5" />
-                长按缩略图拖动排序
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+                左右按钮移动当前页
               </span>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setActiveIndex((i) => Math.max(0, i - 1))}
+                  onClick={() => moveActive(-1)}
                   disabled={activeIndex === 0}
                   className="p-1.5 rounded-lg bg-slate-100 disabled:opacity-30"
-                  aria-label="上一页"
+                  aria-label="当前页左移"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => setActiveIndex((i) => Math.min(pages.length - 1, i + 1))}
+                  onClick={() => moveActive(1)}
                   disabled={activeIndex === pages.length - 1}
                   className="p-1.5 rounded-lg bg-slate-100 disabled:opacity-30"
-                  aria-label="下一页"
+                  aria-label="当前页右移"
                 >
                   <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => {
-                    setPages([]);
-                    setActiveIndex(0);
-                  }}
-                  className="ml-1 p-1.5 rounded-lg bg-slate-100 text-slate-500"
-                  aria-label="清空全部"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
