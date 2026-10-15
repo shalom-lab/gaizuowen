@@ -64,10 +64,11 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
         setSaveResult({ ok: false, msg: r.error || '密钥不可用，未保存' });
         return;
       }
+      const next = buildNextSecrets();
       if (keyInput.trim()) saveApiKey(keyInput);
       saveBaseUrl(baseInput);
       setKeyInput('');
-      onSecretsChanged(buildNextSecrets());
+      onSecretsChanged(next);
       setSaveResult({ ok: true, msg: '连接成功，已保存' });
     } catch (e: any) {
       setSaveResult({ ok: false, msg: (e?.message || '连接失败') + '，未保存' });

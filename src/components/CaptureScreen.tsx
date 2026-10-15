@@ -116,7 +116,8 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
       next.splice(to, 0, item);
       return next;
     });
-    setActiveIndex(to);
+    // Caller only invokes this for a real move; focus the page that was dragged.
+    if (from !== to && to >= 0) setActiveIndex(to);
   };
 
   const previewSwipe = useHorizontalSwipe({
@@ -304,6 +305,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
               第 {activeIndex + 1} 页 / 共 {pages.length} 页
             </div>
             <button
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={() => setPreviewOpen(true)}
               className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-lg bg-white/90 text-slate-700 text-xs font-semibold"
             >
@@ -318,7 +320,9 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
 
           <div
             ref={thumbStripRef}
-            className="mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
+            className={`mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 ${
+              dragFrom !== null ? 'touch-none' : ''
+            }`}
           >
             {pages.map((p, i) => {
               const isDragging = dragFrom === i;
@@ -332,7 +336,7 @@ export const CaptureScreen: React.FC<CaptureScreenProps> = ({
                     if (suppressThumbClick.current) return;
                     setActiveIndex(i);
                   }}
-                  className={`relative shrink-0 w-20 h-24 rounded-xl overflow-hidden border-2 transition-all touch-none ${
+                  className={`relative shrink-0 w-20 h-24 rounded-xl overflow-hidden border-2 transition-all ${
                     isDragging
                       ? 'border-rose-500 opacity-50 scale-95'
                       : isDropTarget
