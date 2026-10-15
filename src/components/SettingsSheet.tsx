@@ -4,8 +4,6 @@ import {
   Secrets,
   saveApiKey,
   saveBaseUrl,
-  saveGhRepo,
-  saveGhToken,
   clearApiKey,
   clearAllSecrets,
   maskKey,
@@ -33,8 +31,6 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
 }) => {
   const [keyInput, setKeyInput] = useState('');
   const [baseInput, setBaseInput] = useState(secrets.baseUrl === DEFAULT_BASE_URL ? '' : secrets.baseUrl);
-  const [repoInput, setRepoInput] = useState(secrets.ghRepo);
-  const [tokenInput, setTokenInput] = useState('');
   const [reveal, setReveal] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
@@ -46,18 +42,13 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
     apiKey: keyInput.trim() || secrets.apiKey,
     baseUrl: baseInput.trim() || DEFAULT_BASE_URL,
     fromEnv: false,
-    ghRepo: repoInput.trim(),
-    ghToken: tokenInput.trim() || secrets.ghToken,
     ...over,
   });
 
   const handleSave = () => {
     if (keyInput.trim()) saveApiKey(keyInput);
     saveBaseUrl(baseInput);
-    saveGhRepo(repoInput);
-    if (tokenInput.trim()) saveGhToken(tokenInput);
     setKeyInput('');
-    setTokenInput('');
     onSecretsChanged(buildNextSecrets());
     setTestResult(null);
   };
@@ -93,14 +84,13 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
     clearAllSecrets();
     setKeyInput('');
     setBaseInput('');
-    setRepoInput('');
-    setTokenInput('');
     setTestResult(null);
-    onSecretsChanged({ apiKey: '', baseUrl: DEFAULT_BASE_URL, fromEnv: false, ghRepo: '', ghToken: '' });
+    onSecretsChanged({ apiKey: '', baseUrl: DEFAULT_BASE_URL, fromEnv: false });
   };
 
   const hasKey = Boolean(secrets.apiKey);
-  const dirty = Boolean(keyInput.trim() || tokenInput.trim() || baseInput !== (secrets.baseUrl === DEFAULT_BASE_URL ? '' : secrets.baseUrl) || repoInput !== secrets.ghRepo);
+  const savedBase = secrets.baseUrl === DEFAULT_BASE_URL ? '' : secrets.baseUrl;
+  const dirty = Boolean(keyInput.trim() || baseInput !== savedBase);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
@@ -211,7 +201,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
             onClick={() => setShowAdvanced((v) => !v)}
             className="text-xs font-semibold text-slate-500 py-1"
           >
-            {showAdvanced ? '收起高级设置' : '高级设置（API 地址 / GitHub）'}
+            {showAdvanced ? '收起高级设置' : '高级设置（API 地址）'}
           </button>
 
           {showAdvanced && (
@@ -228,37 +218,9 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
                 <p className="mt-1 text-[10px] text-slate-400">留空使用官方地址。可用于代理或兼容网关。</p>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  GitHub 仓库（owner/repo，选填）
-                </label>
-                <input
-                  value={repoInput}
-                  onChange={(e) => setRepoInput(e.target.value)}
-                  placeholder="owner/repo"
-                  spellCheck={false}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">GitHub PAT（选填）</label>
-                <input
-                  type="password"
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder={secrets.ghToken ? `已保存 ${maskKey(secrets.ghToken)}` : 'ghp_...'}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
-                />
-              </div>
-
               <p className="text-[10px] text-slate-400 leading-relaxed">
                 存储键名：<code className="font-mono">deepseek-zuowen-key</code>、
-                <code className="font-mono"> deepseek-zuowen-base</code>、
-                <code className="font-mono"> gh-zuowen-repo</code>、
-                <code className="font-mono"> gh-zuowen-token</code>。
+                <code className="font-mono"> deepseek-zuowen-base</code>。
                 也可事先写入 localStorage，应用启动会自动读取。
               </p>
 

@@ -17,6 +17,9 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./*"]
     }

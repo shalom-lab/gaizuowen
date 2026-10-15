@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { CheckCircle2, X } from 'lucide-react';
-import { GradingJob } from '../types';
 
 export interface ToastItem {
   id: string;

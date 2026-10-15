@@ -6,21 +6,17 @@
  *
  *   deepseek-zuowen-key    the teacher's DeepSeek API key
  *   deepseek-zuowen-base   optional API base URL override
- *   gh-zuowen-repo         optional "owner/repo" for publishing
- *   gh-zuowen-token        optional GitHub PAT for publishing
  *
- * For local development the .env key may be injected at build time by Vite
- * (`__DEV_DEEPSEEK_KEY__`); that injection is empty in production builds.
+ * For local development the .env key is injected by the `virtual:dev-secrets`
+ * module in development mode only; production builds always get empty strings.
  */
 
 import { DEV_KEY, DEV_BASE } from 'virtual:dev-secrets';
 
 const APP = 'zuowen';
 
-export const KEY_STORAGE = `deepseek-${APP}-key`;
-export const BASE_STORAGE = `deepseek-${APP}-base`;
-export const GH_REPO_STORAGE = `gh-${APP}-repo`;
-export const GH_TOKEN_STORAGE = `gh-${APP}-token`;
+const KEY_STORAGE = `deepseek-${APP}-key`;
+const BASE_STORAGE = `deepseek-${APP}-base`;
 
 export const DEFAULT_BASE_URL = 'https://api.deepseek.com';
 
@@ -49,8 +45,6 @@ export interface Secrets {
   baseUrl: string;
   /** True when the key came from the dev-injected .env rather than user input. */
   fromEnv: boolean;
-  ghRepo: string;
-  ghToken: string;
 }
 
 /** Read all secrets. Called once at bootstrap so the app is usable immediately. */
@@ -61,8 +55,6 @@ export function loadSecrets(): Secrets {
     apiKey,
     baseUrl: safeGet(BASE_STORAGE).trim() || DEV_BASE.trim() || DEFAULT_BASE_URL,
     fromEnv: !stored && Boolean(DEV_KEY.trim()),
-    ghRepo: safeGet(GH_REPO_STORAGE).trim(),
-    ghToken: safeGet(GH_TOKEN_STORAGE).trim(),
   };
 }
 
@@ -75,20 +67,12 @@ export function saveBaseUrl(base: string) {
   safeSet(BASE_STORAGE, v === DEFAULT_BASE_URL ? '' : v);
 }
 
-export function saveGhRepo(repo: string) {
-  safeSet(GH_REPO_STORAGE, repo.trim());
-}
-
-export function saveGhToken(token: string) {
-  safeSet(GH_TOKEN_STORAGE, token.trim());
-}
-
 export function clearApiKey() {
   safeSet(KEY_STORAGE, '');
 }
 
 export function clearAllSecrets() {
-  [KEY_STORAGE, BASE_STORAGE, GH_REPO_STORAGE, GH_TOKEN_STORAGE].forEach((k) => safeSet(k, ''));
+  [KEY_STORAGE, BASE_STORAGE].forEach((k) => safeSet(k, ''));
 }
 
 /** Show only the tail of a key, enough to recognise which one is stored. */

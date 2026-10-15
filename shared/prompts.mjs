@@ -73,7 +73,7 @@ ${essayTitle ? `老师指定题目范围：《${essayTitle}》\n` : ''}${promptH
 ${GRADE_SCHEMA_HINT}`;
 }
 
-export const GRADE_SCHEMA_HINT = `{
+const GRADE_SCHEMA_HINT = `{
   "title": "string",
   "suggestedTitles": ["string", "string", "string"],
   "wordCount": 0,
@@ -100,41 +100,3 @@ export const GRADE_SCHEMA_HINT = `{
   } ],
   "strengths": ["15-25字"]
 }`;
-
-/**
- * Prompt for re-evaluating a teacher-corrected plain-text essay.
- */
-export function buildReEvaluatePrompt({ text, gradeLevel = '三年级', title = '作文' }) {
-  return `你是一位小学语文特级教师。下面是老师【人工核对修正后】的作文全文，请重新批改。
-题目：《${title}》  年级：${gradeLevel}
-正文：
-${text}
-
-批语会被老师照抄到作文本上，所以 explanation 必须 10-30 字、能直接落笔。
-段落划分以正文空行为准，annotations 的 paragraphIndex/charStart/charEnd 必须与正文严格对应，originalText 必须原样截取。
-
-只输出一个合法 JSON 对象（不要 markdown 代码块）：
-{
-  "overallScore": 0,
-  "letterGrade": "优秀 (A)",
-  "summaryComment": "严格80-100字的总评",
-  "dimensionScores": {
-    "theme":     { "name": "主题立意", "score": 0, "maxScore": 20, "comment": "15字内" },
-    "language":  { "name": "语言表达", "score": 0, "maxScore": 25, "comment": "15字内" },
-    "structure": { "name": "篇章结构", "score": 0, "maxScore": 20, "comment": "15字内" },
-    "mechanics": { "name": "错字标点", "score": 0, "maxScore": 15, "comment": "15字内" },
-    "emotion":   { "name": "情感真实", "score": 0, "maxScore": 20, "comment": "15字内" }
-  },
-  "annotations": [ {
-    "type": "typo|grammar|punctuation|highlight",
-    "category": "string",
-    "originalText": "原样截取",
-    "suggestedText": "string",
-    "explanation": "10-30字",
-    "paragraphIndex": 0,
-    "charStart": 0,
-    "charEnd": 1
-  } ],
-  "strengths": ["15-25字"]
-}`;
-}

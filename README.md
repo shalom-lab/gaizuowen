@@ -50,8 +50,12 @@
 「批改记录」里点**选择**可多选（或全选当前筛选结果），再点**导出批注文档**，
 进入一个干净的排版页，用浏览器的「打印 → 另存为 PDF」即可得到 PDF。
 
+![导出样式](docs/export-preview.png)
+
 采用打印排版而不是 JS PDF 库，原因是中文:矢量文字、字形正确、可选可搜索，
 不必嵌入 5–10 MB 的 CJK 字体，也不必把页面栅格化成图片。
+
+![界面预览](docs/ui-preview.png)
 
 文档结构:每篇一页,含
 
@@ -117,10 +121,8 @@ http://<你电脑的局域网IP>:5173
 | --- | --- |
 | `deepseek-zuowen-key` | DeepSeek API Key（必填） |
 | `deepseek-zuowen-base` | 自定义 API 地址（选填，用于代理/兼容网关） |
-| `gh-zuowen-repo` | `owner/repo`（选填，用于发布） |
-| `gh-zuowen-token` | GitHub PAT（选填） |
 
-可在页面「设置」里填写，也可事先注入后在控制台执行：
+可在页面「设置」里填写，也可事先注入：
 
 ```js
 localStorage.setItem('deepseek-zuowen-key', 'sk-...');
@@ -147,35 +149,46 @@ shared/          浏览器与测试脚本共用的核心逻辑（纯 ESM，无 N
   prompts.mjs      prompt 构造（图片 + 输出结构说明）
   normalize.mjs    结果归一化 + 批注定位（保证高亮与批语严格对齐）
   deepseek.mjs     调用、重试、截断 JSON 修复、错误文案
+  queue.mjs        后台队列调度（纯函数，便于测试）
 src/
-  utils/byok.ts    localStorage 密钥读写
-  utils/grade.ts   前端批改流程
+  hooks/          后台队列、屏幕常亮
+  utils/          BYOK 密钥、批改流程、评分配色、角标规则、IndexedDB
   components/     移动端界面
-scripts/         测试与验证脚本
-test/            真实作文照片（测试用）
+scripts/          测试脚本 + 文档配图生成（Python，见下）
+test/             真实作文照片（不入库，自行放入即可跑 e2e）
+docs/             README 里的界面示意图
 ```
+
+`docs/ui-preview.png` 与 `docs/export-preview.png` 是**示意图**(环境里没有浏览器),
+由 `scripts/render-*.py` 用 Pillow 绘制,需要 Python + Pillow,不属于应用运行依赖。
 
 **批注定位**是这里最关键的一环：模型给的字符下标经常不准，所以
 `normalize.mjs` 只信任 `originalText`，重新在转写正文里定位并校验，
-定位不到的批注直接丢弃，宁可不标也不错标。真实 4 页作文实测 **21/21 全部精确命中**。
+定位不到的批注直接丢弃，宁可不标也不错标。真实 4 页作文实测 **20/20 全部精确命中**。
 
 ## 测试
 
 ```bash
-npm test            # 纯逻辑单测（批注定位、截断 JSON 修复）
-npm run test:api    # 真实调用 DeepSeek 跑通 4 页作文，校验全部契约
-npm run typecheck   # 类型检查
+npm test             # 纯逻辑单测，不需要网络与密钥
+npm run test:e2e     # 真实调用 DeepSeek 跑通 4 页作文，校验全部契约
+npm run typecheck    # 类型检查（已开启 noUnusedLocals，禁止死代码堆积）
 ```
 
-`npm run test:api` 需要 `.env` 里有可用的 key，会依次断言：
-标题非空、分数区间、总评 80–100 字、批注数量、维度分之和等于总分、
-**批注 100% 精确锚定**、批语长度可抄写、CORS 回显。
+`npm test` 覆盖:**编码防回归**（防止 shell 回写把中文变成乱码）、
+评分配色语义、右上角角标规则、后台队列不变量（不重复开跑/并发上限/不抢焦点）、
+批注定位、截断 JSON 修复。
 
-`npm run fixture` 可把一次真实批改结果存成 `scripts/fixture-result.json`，
-供界面单测与静态预览复用。
+`npm run test:e2e` 会把 `test/` 里的照片（默认全部）发给 DeepSeek，
+断言:标题非空、分数区间、总评 80–100 字、批注数量、维度分之和等于总分、
+**批注 100% 精确锚定**、批语长度可抄写、CORS 回显。
+`test/` 不入库,自己放 1–4 张照片进去即可;没有照片时该脚本会提示并跳过。
+
+`npm run fixture` 把一次真实批改结果存成 `scripts/fixture-result.json`，
+供界面单测复用。
 
 ## 已知取舍
 
 - 手写体识别偶有偏差，正式使用前建议对照原图核对
 - 模型偶尔会把建议写得偏长，prompt 已约束，仍可能个别出现
 - 批改记录存在浏览器 IndexedDB，换设备或清缓存会丢失
+- 导出用浏览器打印生成 PDF，因此在极少数屏蔽 `window.print` 的内嵌浏览器里可能不可用

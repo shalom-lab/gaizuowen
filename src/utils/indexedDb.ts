@@ -100,53 +100,6 @@ export async function clearAllEssaysFromIndexedDB(): Promise<void> {
   });
 }
 
-/**
- * Save current active working session so page refresh preserves state
- */
-export async function saveActiveDraftToIndexedDB(data: {
-  currentImages: string[];
-  gradingResult: EssayGradingResult | null;
-}): Promise<void> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DRAFT_STORE_NAME, 'readwrite');
-    const store = tx.objectStore(DRAFT_STORE_NAME);
-    const req = store.put({ key: 'active_session', ...data, updatedAt: Date.now() });
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
-/**
- * Load current active working session from IndexedDB
- */
-export async function loadActiveDraftFromIndexedDB(): Promise<{
-  currentImages: string[];
-  gradingResult: EssayGradingResult | null;
-} | null> {
-  try {
-    const db = await openDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(DRAFT_STORE_NAME, 'readonly');
-      const store = tx.objectStore(DRAFT_STORE_NAME);
-      const req = store.get('active_session');
-      req.onsuccess = () => {
-        if (req.result) {
-          resolve({
-            currentImages: req.result.currentImages || [],
-            gradingResult: req.result.gradingResult || null,
-          });
-        } else {
-          resolve(null);
-        }
-      };
-      req.onerror = () => resolve(null);
-    });
-  } catch {
-    return null;
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Background grading queue
 //
@@ -186,19 +139,5 @@ export async function loadJobQueueFromIndexedDB(): Promise<GradingJob[]> {
     });
   } catch {
     return [];
-  }
-}
-
-export async function clearJobQueueFromIndexedDB(): Promise<void> {
-  try {
-    const db = await openDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(DRAFT_STORE_NAME, 'readwrite');
-      const req = tx.objectStore(DRAFT_STORE_NAME).delete(JOB_QUEUE_KEY);
-      req.onsuccess = () => resolve();
-      req.onerror = () => resolve();
-    });
-  } catch {
-    /* ignore */
   }
 }

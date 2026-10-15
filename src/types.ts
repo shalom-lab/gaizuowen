@@ -61,15 +61,6 @@ export interface EssayGradingResult {
   strengths: string[];
 }
 
-/** Counts per annotation type, for the filter chips. */
-export interface AnnotationCounts {
-  all: number;
-  typo: number;
-  grammar: number;
-  punctuation: number;
-  highlight: number;
-}
-
 export interface GradingSubmission {
   images: UploadedImagePage[];
   gradeLevel: string;

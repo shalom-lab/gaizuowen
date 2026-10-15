@@ -4,7 +4,7 @@
  * The prompt and normalizer are the same modules the local test harness uses,
  * so what passes the harness is what ships.
  */
-import { buildGradingPrompt, buildReEvaluatePrompt } from '../../shared/prompts.mjs';
+import { buildGradingPrompt } from '../../shared/prompts.mjs';
 import { normalizeResult } from '../../shared/normalize.mjs';
 import { callDeepSeek, DEFAULT_MODEL, DEFAULT_MAX_TOKENS } from '../../shared/deepseek.mjs';
 import { EssayGradingResult } from '../types';
@@ -84,36 +84,4 @@ export async function gradeEssay(
   }) as EssayGradingResult;
 
   return { result, truncated, elapsedMs, usage };
-}
-
-/** Re-grade after the teacher corrects an OCR mistake. */
-export async function reEvaluate(
-  params: { text: string; gradeLevel: string; title: string; studentName?: string; pageCount?: number },
-  opts: { apiKey: string; baseUrl?: string; model?: string; signal?: AbortSignal }
-): Promise<EssayGradingResult> {
-  if (!params.text || !params.text.trim()) throw new Error('作文正文不能为空。');
-
-  const { parsed } = await callDeepSeek({
-    apiKey: opts.apiKey,
-    baseUrl: opts.baseUrl,
-    model: opts.model || DEFAULT_MODEL,
-    maxTokens: DEFAULT_MAX_TOKENS,
-    messages: [{ role: 'user', content: buildReEvaluatePrompt(params) }],
-    signal: opts.signal,
-  });
-
-  const paragraphs = params.text
-    .split(/\n\s*\n/)
-    .map((t) => t.trim())
-    .filter(Boolean)
-    .map((text, i) => ({ paragraphIndex: i, text }));
-
-  return normalizeResult(
-    { ...parsed, paragraphs },
-    {
-      gradeLevel: params.gradeLevel,
-      studentName: params.studentName || '同学',
-      pageCount: params.pageCount || 1,
-    }
-  ) as EssayGradingResult;
 }

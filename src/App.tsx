@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CaptureScreen } from './components/CaptureScreen';
 import { ResultScreen } from './components/ResultScreen';
 import { HistorySheet } from './components/HistorySheet';

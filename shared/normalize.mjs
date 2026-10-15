@@ -49,7 +49,7 @@ const EDGE_PUNCT = /^[\s，。！？、；：“”‘’《》（）()【】…
  * Tries, in order: exact slice as given -> indexOf in the claimed paragraph ->
  * indexOf anywhere -> punctuation-trimmed fuzzy match. Unanchorable items are dropped.
  */
-export function anchorAnnotations(paragraphs, annotations) {
+function anchorAnnotations(paragraphs, annotations) {
   const out = [];
   const used = new Map(); // paragraphIndex -> occupied [start,end) ranges
 
@@ -320,5 +320,3 @@ export function normalizeResult(parsed, ctx = {}) {
 
   return out;
 }
-
-export { countHanzi, normalizeSummary, clipNote };
