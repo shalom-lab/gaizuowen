@@ -65,6 +65,16 @@
     background: #ffffff !important;
   }
 
+  /*
+   * Browsers drop background colours and often text-decoration colour when
+   * printing, which would silently turn the colour-coded批注单 into a grey
+   * sheet. Ask for exact rendering so the marks survive to the PDF.
+   */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   .no-print {
     display: none !important;
   }

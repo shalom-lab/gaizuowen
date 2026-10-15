@@ -5,6 +5,7 @@ browser here. Layout, fonts and rules mirror what the print stylesheet produces.
 """
 import glob
 import json
+import math
 from PIL import Image, ImageDraw, ImageFont
 
 
@@ -13,6 +14,20 @@ def pick(cands, size):
         if glob.glob(c):
             return ImageFont.truetype(c, size)
     return ImageFont.load_default()
+
+
+def draw_wavy(d, x0, x1, y, color, amp=1.8, period=6):
+    """Wavy rule — the teacher's mark for a sentence worth praising."""
+    if x1 <= x0:
+        return
+    px, py = x0, y
+    x = x0
+    while x < x1:
+        nx = min(x + 1.0, x1)
+        ny = y + amp * math.sin((nx - x0) / period * 2 * math.pi)
+        d.line([(px, py), (nx, ny)], fill=color, width=1)
+        px, py = nx, ny
+        x = nx
 
 
 SONG = ["C:/Windows/Fonts/simsun.ttc", "C:/Windows/Fonts/simsunb.ttf"]
@@ -33,6 +48,17 @@ LIGHT = (150, 160, 175)
 RULE = (40, 48, 62)
 CELL = (190, 198, 210)
 HEAD_BG = (240, 242, 246)
+PRAISE_BG = (255, 251, 235)
+
+# Mirrors EXPORT_INK in ExportPreview.tsx — colour on text and thin rules only,
+# so the sheet still reads correctly on a black-and-white school printer.
+EXPORT_INK = {
+    "typo":        {"line": (185, 28, 28),  "text": (185, 28, 28)},
+    "grammar":     {"line": (234, 88, 12),  "text": (194, 65, 12)},
+    "punctuation": {"line": (147, 51, 234), "text": (126, 34, 206)},
+    "highlight":   {"line": (234, 179, 8),  "text": (180, 83, 9)},
+}
+LABEL = {"typo": "错别字", "grammar": "病句", "punctuation": "标点", "highlight": "好句"}
 
 # A4 at ~96 dpi
 W, H = 794, 1123
@@ -67,15 +93,50 @@ y = M
 d.text((W / 2, y), f"《{r['title']}》批注单", font=f_title, fill=INK, anchor="mm")
 y += 32
 
-meta = f"学生：{r['studentName']}    年级：{r['gradeLevel']}    字数：{r['wordCount']}    页数：{r.get('pageCount', 1)}    评分：{r['overallScore']} 分（{r['letterGrade']}）"
+meta = f"学生：{r['studentName']}    年级：{r['gradeLevel']}    字数：{r['wordCount']}    页数：{r.get('pageCount', 1)}"
 d.text((W / 2, y + 8), meta, font=f_meta, fill=GREY, anchor="mm")
 y += 30
 d.line([(M, y), (W - M, y)], fill=RULE, width=2)
-y += 20
+y += 14
+
+# ---- score chip, coloured by how good it is ----
+score = r["overallScore"]
+if score >= 90:
+    sbg, stx = (236, 253, 245), (5, 150, 105)
+elif score >= 80:
+    sbg, stx = (255, 251, 235), (217, 119, 6)
+else:
+    sbg, stx = (255, 241, 242), (225, 29, 72)
+chip = f"{score} 分（{r['letterGrade']}）"
+cw = d.textlength(chip, font=f_tbl_b)
+d.rounded_rectangle([W / 2 - cw / 2 - 8, y, W / 2 + cw / 2 + 8, y + 20], radius=5, fill=sbg, outline=stx)
+d.text((W / 2, y + 10), chip, font=f_tbl_b, fill=stx, anchor="mm")
+y += 30
+
+# ---- colour legend ----
+lx = M
+d.text((lx, y), "色标：", font=f_tiny, fill=(70, 80, 95))
+lx += d.textlength("色标：", font=f_tiny)
+for t in ["typo", "grammar", "punctuation", "highlight"]:
+    if not any(a["type"] == t for a in r["annotations"]):
+        continue
+    mark = "〰 " if t == "highlight" else "— "
+    txt = mark + LABEL[t]
+    d.text((lx, y), txt, font=f_tiny, fill=EXPORT_INK[t]["text"])
+    lx += d.textlength(txt, font=f_tiny) + 12
+d.text((lx, y), "（原文一字未改，〔→〕内为修改建议）", font=f_tiny, fill=LIGHT)
+y += 22
 
 # ---------- 一、原文与批注 ----------
-d.text((M, y), "一、原文与批注", font=f_h2, fill=INK)
-y += 24
+def heading(text):
+    """Section heading with the left accent rule (mirrors border-l-4 pl-2)."""
+    global y
+    d.rectangle([M, y + 1, M + 3, y + 17], fill=RULE)
+    d.text((M + 12, y), text, font=f_h2, fill=INK)
+    y += 26
+
+
+heading("一、原文与批注")
 d.text((M, y), "原文未作改动，〔→　〕内为修改建议；带编号的批注见下表。", font=f_tiny, fill=LIGHT)
 y += 22
 
@@ -110,14 +171,19 @@ def draw_paragraph(text, anns):
     x = M
     for tok, kind, a in toks:
         f = f_tiny if kind == "note" else f_body
-        col = GREY if kind == "note" else INK
+        col = EXPORT_INK[a["type"]]["text"] if kind == "note" else INK
         for ch in tok:
             w = d.textlength(ch, font=f)
             if x + w > RIGHT:
                 x = M
                 y += LH
             if kind == "mark":
-                d.line([(x, y + 24), (x + w, y + 24)], fill=(60, 60, 60), width=1)
+                t = EXPORT_INK[a["type"]]
+                # Same pen rule as the app: straight = fix, wavy = praise.
+                if a["type"] == "highlight":
+                    draw_wavy(d, x, x + w, y + 24, t["line"], amp=1.6, period=6)
+                else:
+                    d.line([(x, y + 24), (x + w, y + 24)], fill=t["line"], width=1)
             d.text((x, y + 2), ch, font=f, fill=col)
             x += w
     y += LH + 8
@@ -129,14 +195,14 @@ for p in r["paragraphs"]:
     draw_paragraph(p["text"], anns_by_p.get(p["paragraphIndex"], []))
 
 y += 8
-if y > H - 300:
+if y > H - 320:
     d.text((M, y), "（原文接下页）", font=f_tiny, fill=LIGHT)
+    y += 22
 
 y += 8
 
 # ---------- 二、批注明细 ----------
-d.text((M, y), f"二、批注明细（共 {len(r['annotations'])} 处）", font=f_h2, fill=INK)
-y += 26
+heading(f"二、批注明细（共 {len(r['annotations'])} 处）")
 
 cols = [34, 78, 210, RIGHT - M - 34 - 78 - 210]
 headers = ["#", "类型", "原文 → 修改", "批语"]
@@ -160,10 +226,15 @@ for a in sorted(r["annotations"], key=lambda a: a["order"]):
     row_h = max(len(c) for c in cells) * 18 + 10
     if y + row_h > H - M - 120:
         break
+    ink = EXPORT_INK[a["type"]]
+    if a["type"] == "highlight":
+        d.rectangle([M, y, RIGHT, y + row_h], fill=PRAISE_BG)
     x = M
-    for c, lines in zip(cols, cells):
+    for ci, (c, lines) in enumerate(zip(cols, cells)):
+        # Colour the number, the type, and the struck-through original.
+        col = ink["text"] if ci in (0, 1) else (INK if ci == 2 else (60, 68, 82))
         for i, ln in enumerate(lines):
-            d.text((x + 7, y + 6 + i * 18), ln, font=f_tbl, fill=INK if c is cols[2] else (60, 68, 82))
+            d.text((x + 7, y + 6 + i * 18), ln, font=f_tbl, fill=col)
         x += c
     d.rectangle([M, y, RIGHT, y + row_h], outline=CELL)
     x = M
@@ -175,11 +246,10 @@ for a in sorted(r["annotations"], key=lambda a: a["order"]):
 y += 22
 
 # ---------- 三、总评 ----------
-d.text((M, y), "三、总评", font=f_h2, fill=INK)
-y += 26
+heading("三、总评")
 lines = wrap(r["summaryComment"], f_body, RIGHT - M - 24)
 box_h = len(lines) * 28 + 22
-d.rectangle([M, y, RIGHT, y + box_h], outline=CELL)
+d.rectangle([M, y, RIGHT, y + box_h], outline=CELL, fill=(249, 250, 252))
 for i, ln in enumerate(lines):
     d.text((M + 12, y + 11 + i * 28), ln, font=f_body, fill=INK)
 
