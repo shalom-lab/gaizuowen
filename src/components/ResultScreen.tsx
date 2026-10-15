@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Star, Copy, Check, Image as ImageIcon, X, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
+import { Star, Copy, Check, Image as ImageIcon, ClipboardList } from 'lucide-react';
 import { EssayGradingResult, AnnotationItem } from '../types';
 import { TYPE_META } from '../utils/annotationMeta';
 import { scoreStyle } from '../utils/scoreStyle';
 import { AnnotatedEssay } from './AnnotatedEssay';
+import { PhotoViewer } from './PhotoViewer';
 
 interface ResultScreenProps {
   result: EssayGradingResult;
@@ -184,103 +185,6 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({ result, imageUrls, o
           onClose={() => setPhotosOpen(false)}
         />
       )}
-    </div>
-  );
-};
-
-/**
- * Full-screen photo checker.
- *
- * Supports finger swipe (left/right) as well as the arrow buttons — the teacher
- * is holding the phone one-handed, so a swipe is far easier than hitting a small
- * target at the bottom of the screen.
- */
-const PhotoViewer: React.FC<{
-  imageUrls: string[];
-  index: number;
-  onIndexChange: (i: number) => void;
-  onClose: () => void;
-}> = ({ imageUrls, index, onIndexChange, onClose }) => {
-  const touch = React.useRef<{ x: number; y: number } | null>(null);
-  /** Ignore mostly-vertical drags so scrolling never flips the page. */
-  const SWIPE_MIN_X = 45;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    const t = e.touches[0];
-    touch.current = { x: t.clientX, y: t.clientY };
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const start = touch.current;
-    touch.current = null;
-    if (!start) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - start.x;
-    const dy = t.clientY - start.y;
-    if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dx) < Math.abs(dy)) return;
-
-    if (dx < 0 && index < imageUrls.length - 1) onIndexChange(index + 1);
-    else if (dx > 0 && index > 0) onIndexChange(index - 1);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 text-white shrink-0">
-        <span className="text-sm font-bold">
-          原图 {index + 1} / {imageUrls.length}
-        </span>
-        <button onClick={onClose} className="p-1.5 rounded-full bg-white/15">
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      <div
-        className="flex-1 flex items-center justify-center p-2 overflow-hidden touch-pan-y"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-      >
-        <img
-          src={imageUrls[index]}
-          alt={`第 ${index + 1} 页`}
-          className="max-w-full max-h-full object-contain select-none"
-          draggable={false}
-        />
-      </div>
-
-      {imageUrls.length > 1 && (
-        <div className="flex items-center justify-center gap-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] shrink-0">
-          <button
-            onClick={() => onIndexChange(Math.max(0, index - 1))}
-            disabled={index === 0}
-            className="p-2.5 rounded-full bg-white/15 text-white disabled:opacity-30"
-            aria-label="上一页"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <div className="flex gap-1.5">
-            {imageUrls.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => onIndexChange(i)}
-                aria-label={`第 ${i + 1} 页`}
-                className={`w-2 h-2 rounded-full ${i === index ? 'bg-white' : 'bg-white/30'}`}
-              />
-            ))}
-          </div>
-          <button
-            onClick={() => onIndexChange(Math.min(imageUrls.length - 1, index + 1))}
-            disabled={index === imageUrls.length - 1}
-            className="p-2.5 rounded-full bg-white/15 text-white disabled:opacity-30"
-            aria-label="下一页"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
-      )}
-
-      <p className="pb-3 text-center text-[11px] text-white/40 shrink-0">
-        {imageUrls.length > 1 ? '左右滑动切换页面' : ''}
-      </p>
     </div>
   );
 };

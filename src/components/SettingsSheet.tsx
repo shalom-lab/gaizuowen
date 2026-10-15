@@ -21,7 +21,8 @@ interface SettingsSheetProps {
 }
 
 /**
- * BYOK settings. Password-style input, masked status, optional key test.
+ * BYOK settings. Password-style input, masked status.
+ * Save verifies the key first; nothing is persisted until the check passes.
  * Nothing is shown in full once saved, and nothing leaves the browser except
  * the request to api.deepseek.com.
  */
@@ -35,8 +36,8 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
   const [keyInput, setKeyInput] = useState('');
   const [baseInput, setBaseInput] = useState(secrets.baseUrl === DEFAULT_BASE_URL ? '' : secrets.baseUrl);
   const [reveal, setReveal] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveResult, setSaveResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   if (!isOpen) return null;
@@ -48,29 +49,30 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
     ...over,
   });
 
-  const handleSave = () => {
-    if (keyInput.trim()) saveApiKey(keyInput);
-    saveBaseUrl(baseInput);
-    setKeyInput('');
-    onSecretsChanged(buildNextSecrets());
-    setTestResult(null);
-  };
-
-  const handleTest = async () => {
+  /** Verify first; only write to localStorage when the key actually works. */
+  const handleSave = async () => {
     const key = keyInput.trim() || secrets.apiKey;
     if (!key) {
-      setTestResult({ ok: false, msg: '请先填入 API Key' });
+      setSaveResult({ ok: false, msg: '请先填入 API Key' });
       return;
     }
-    setTesting(true);
-    setTestResult(null);
+    setSaving(true);
+    setSaveResult(null);
     try {
       const r = await verifyApiKey({ apiKey: key, baseUrl: baseInput.trim() || DEFAULT_BASE_URL });
-      setTestResult(r.ok ? { ok: true, msg: '连接成功，密钥可用' } : { ok: false, msg: r.error || '密钥不可用' });
+      if (!r.ok) {
+        setSaveResult({ ok: false, msg: r.error || '密钥不可用，未保存' });
+        return;
+      }
+      if (keyInput.trim()) saveApiKey(keyInput);
+      saveBaseUrl(baseInput);
+      setKeyInput('');
+      onSecretsChanged(buildNextSecrets());
+      setSaveResult({ ok: true, msg: '连接成功，已保存' });
     } catch (e: any) {
-      setTestResult({ ok: false, msg: e?.message || '连接失败' });
+      setSaveResult({ ok: false, msg: (e?.message || '连接失败') + '，未保存' });
     } finally {
-      setTesting(false);
+      setSaving(false);
     }
   };
 
@@ -78,7 +80,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
     if (!confirm('确定清除浏览器中保存的 API Key？')) return;
     clearApiKey();
     setKeyInput('');
-    setTestResult(null);
+    setSaveResult(null);
     onSecretsChanged({ ...secrets, apiKey: '', fromEnv: false });
   };
 
@@ -87,7 +89,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
     clearAllSecrets();
     setKeyInput('');
     setBaseInput('');
-    setTestResult(null);
+    setSaveResult(null);
     onSecretsChanged({ apiKey: '', baseUrl: DEFAULT_BASE_URL, fromEnv: false });
   };
 
@@ -136,7 +138,10 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               <input
                 type={reveal ? 'text' : 'password'}
                 value={keyInput}
-                onChange={(e) => setKeyInput(e.target.value)}
+                onChange={(e) => {
+                  setKeyInput(e.target.value);
+                  if (saveResult) setSaveResult(null);
+                }}
                 autoComplete="off"
                 spellCheck={false}
                 placeholder={hasKey ? '填入新 Key 可覆盖已保存的' : 'sk-...'}
@@ -171,40 +176,33 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
                 onClick={onOpenHelp}
                 className="mt-2 text-[11px] font-semibold text-rose-600 underline"
               >
-                不知道去哪拿 Key？查看使用帮助
+                不知道去哪拿 Key？查看使用介绍
               </button>
             )}
 
-            <div className="mt-2.5 flex items-center gap-2">
-              <button
-                onClick={handleTest}
-                disabled={testing || (!keyInput.trim() && !secrets.apiKey)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 disabled:opacity-40 active:scale-95"
-              >
-                {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <KeyRound className="w-3.5 h-3.5" />}
-                {testing ? '测试中…' : '测试连接'}
-              </button>
-              {hasKey && (
+            {hasKey && (
+              <div className="mt-2.5">
                 <button
                   onClick={handleClear}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-500 active:scale-95"
+                  disabled={saving}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-500 disabled:opacity-40 active:scale-95"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   清除密钥
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
-            {testResult && (
+            {saveResult && (
               <div
                 className={`mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed p-2.5 rounded-lg ${
-                  testResult.ok
+                  saveResult.ok
                     ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                     : 'bg-red-50 text-red-700 border border-red-200'
                 }`}
               >
-                {testResult.ok ? <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />}
-                {testResult.msg}
+                {saveResult.ok ? <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />}
+                {saveResult.msg}
               </div>
             )}
           </div>
@@ -223,7 +221,10 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5">API 地址</label>
                 <input
                   value={baseInput}
-                  onChange={(e) => setBaseInput(e.target.value)}
+                  onChange={(e) => {
+                    setBaseInput(e.target.value);
+                    if (saveResult) setSaveResult(null);
+                  }}
                   placeholder={DEFAULT_BASE_URL}
                   spellCheck={false}
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
@@ -251,14 +252,15 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
         <div className="px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-slate-100 shrink-0">
           <button
             onClick={handleSave}
-            disabled={!dirty}
-            className={`w-full py-3.5 rounded-2xl font-bold text-base transition-transform ${
-              dirty
+            disabled={!dirty || saving}
+            className={`w-full py-3.5 rounded-2xl font-bold text-base transition-transform flex items-center justify-center gap-2 ${
+              dirty && !saving
                 ? 'bg-rose-600 text-white shadow-lg shadow-rose-200 active:scale-[0.98]'
                 : 'bg-slate-100 text-slate-400'
             }`}
           >
-            保存
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {saving ? '验证中…' : '保存'}
           </button>
         </div>
       </div>

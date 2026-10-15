@@ -18,13 +18,33 @@ import { loadSecrets, Secrets } from './utils/byok';
 import { useGradingQueue } from './hooks/useGradingQueue';
 import { useWakeLock } from './hooks/useWakeLock';
 import { historyBadge } from './utils/historyBadge';
-import { BookOpen, History, Settings, KeyRound } from 'lucide-react';
+import { BookOpen, History, Settings, KeyRound, CircleHelp } from 'lucide-react';
+
+/** Once she's dismissed the first-visit intro, don't auto-open it again. */
+const INTRO_SEEN_KEY = 'deepseek-zuowen-intro-seen';
+
+function readIntroSeen(): boolean {
+  try {
+    return localStorage.getItem(INTRO_SEEN_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+function markIntroSeen() {
+  try {
+    localStorage.setItem(INTRO_SEEN_KEY, '1');
+  } catch {
+    /* private mode */
+  }
+}
 
 export default function App() {
   const [history, setHistory] = useState<StoredEssayRecord[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
+  /** First visit: open 使用介绍 once; afterwards only via the ? button. */
+  const [helpOpen, setHelpOpen] = useState(() => !readIntroSeen());
   const [notice, setNotice] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   /** An essay opened from history, shown without touching the queue. */
@@ -36,6 +56,11 @@ export default function App() {
 
   const [secrets, setSecrets] = useState<Secrets>(() => loadSecrets());
   const hasKey = Boolean(secrets.apiKey);
+
+  const closeHelp = useCallback(() => {
+    setHelpOpen(false);
+    markIntroSeen();
+  }, []);
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -180,6 +205,13 @@ export default function App() {
               </button>
             )}
             <button
+              onClick={() => setHelpOpen(true)}
+              className="p-2 rounded-lg text-slate-500 active:bg-slate-100"
+              aria-label="使用介绍"
+            >
+              <CircleHelp className="w-5 h-5" />
+            </button>
+            <button
               onClick={() => setHistoryOpen(true)}
               className="relative p-2 rounded-lg text-slate-500 active:bg-slate-100"
               aria-label={badge.show ? `批改记录，有 ${queue.unreadCount} 篇新的` : '批改记录'}
@@ -241,12 +273,12 @@ export default function App() {
                 >
                   去设置
                 </button>
-                <button
-                  onClick={() => setHelpOpen(true)}
-                  className="mt-2.5 ml-3 text-xs font-semibold text-amber-800 underline"
-                >
-                  不知道去哪拿 Key？
-                </button>
+                  <button
+                    onClick={() => setHelpOpen(true)}
+                    className="mt-2.5 ml-3 text-xs font-semibold text-amber-800 underline"
+                  >
+                    查看使用介绍
+                  </button>
               </div>
             </div>
           </div>
@@ -305,7 +337,7 @@ export default function App() {
         }}
       />
 
-      <HelpSheet isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
+      <HelpSheet isOpen={helpOpen} onClose={closeHelp} />
     </div>
   );
 }

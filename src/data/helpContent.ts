@@ -1,9 +1,9 @@
 /**
- * In-app help content.
+ * In-app「使用介绍」content.
  *
  * Kept as structured data rather than JSX so the same facts can be rendered by
- * the help sheet and checked against 使用说明.md by
- * `scripts/test-doc-consistency.mjs` — otherwise the app's help and the
+ * the intro sheet and checked against 使用说明.md by
+ * `scripts/test-doc-consistency.mjs` — otherwise the app's intro and the
  * repository's guide would drift apart over time.
  */
 
@@ -19,17 +19,21 @@ export const HELP_STEPS: HelpStep[] = [
   {
     title: '打开网页',
     lines: [
-      '用手机浏览器打开 gzw.rlearner.com',
+      '用手机浏览器打开 https://gzw.rlearner.com',
+      '第一次打开会自动出现「使用介绍」，看完点「知道了」',
+      '之后可点右上角问号随时再看',
       '建议「添加到主屏幕」，用起来和 App 一样',
     ],
   },
   {
     title: '填一次 API Key',
     lines: [
-      '点右上角的齿轮图标',
-      '把 DeepSeek API Key 粘贴进去',
-      '点「测试连接」——出现「连接成功，密钥可用」就对了',
-      '点最下方的「保存」。只需填一次，以后不用再填',
+      'DeepSeek 是一家国产 AI 公司；真正识别和批改作文的，是它的模型',
+      'API Key 相当于调用它的钥匙，本页不会批改，只是替你把作文发给它',
+      '注册后通常有免费额度；本工具也做了调用优化，批一篇大约几分钱，费用不会太高',
+      '点右上角的齿轮图标，把 Key 粘贴进去',
+      '点最下方的「保存」——会先验证，出现「连接成功，已保存」就对了',
+      '只需填一次，以后不用再填',
     ],
   },
   {
@@ -37,7 +41,7 @@ export const HELP_STEPS: HelpStep[] = [
     lines: [
       '「拍照上传」——拍一页收录一页',
       '「从相册选择」——可以一次选中多张',
-      '多页可以长按缩略图拖动换位置',
+      '主图左右滑动可翻页；长按缩略图拖动可换顺序',
       '顺序会影响批改结果，提交前看一眼',
     ],
   },
@@ -70,11 +74,11 @@ export const HELP_STEPS: HelpStep[] = [
 export const HELP_KEY = {
   title: '关于 DeepSeek API Key',
   url: 'https://platform.deepseek.com/api_keys',
-  urlHint: '需要先注册账号，并充值一点钱，几块钱能用很久。',
+  urlHint: '需要先注册账号。新用户通常会有免费额度；额度用完后再充值一点即可，几块钱能用很久。',
   whatTitle: '它是什么',
-  what: '它是调用凭证，相当于一把钥匙。这个小程序本身不会批改，是把作文交给 DeepSeek 的 AI 来批——必须用这把钥匙才能调用。',
+  what: 'DeepSeek 是一家国产 AI 公司。API Key 是调用凭证，相当于一把钥匙。这个小程序本身不会批改，是把作文交给 DeepSeek 的模型来批——必须用这把钥匙才能调用。',
   costTitle: '要花钱吗',
-  cost: '按用量计费，从你的账户余额里扣。批一篇文章大约几分钱。工作日的 18:00 之后、以及周末全天，价格是高峰时段的一半，更划算。',
+  cost: '按用量计费，从你的账户余额里扣。注册后通常有免费额度；本工具做了调用优化（压缩图片等），批一篇大约几分钱，费用不会太高。工作日的 18:00 之后、以及周末全天，价格是高峰时段的一半，更划算。',
   careTitle: '一定要保管好',
   careLead: '这个 Key 相当于你的账号密码：',
   care: [
