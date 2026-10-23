@@ -1,0 +1,7 @@
+video/*.webm
+.deps/
+__pycache__/
+final/*-part*.mp4
+final/*-voice.mp4
+final/*-list.txt
+final/check-*.png
